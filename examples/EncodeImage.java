@@ -1,49 +1,63 @@
 import btools.statcoding.*;
 
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.WritableRaster;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.awt.image.DataBufferInt;
+import java.io.*;
+import java.util.*;
 import javax.imageio.ImageIO;
+
 
 public class EncodeImage {
 
   private void processImage( String fileIn, String fileOut ) throws Exception {
 
     File file = new File( fileIn );
-    BufferedImage image = ImageIO.read(file);
-    ColorModel model = image.getColorModel();
-        
-    int w = image.getWidth();
-    int h = image.getHeight();
+    BufferedImage inputImage = ImageIO.read(file);
+    BufferedImage argbImage = new BufferedImage(inputImage.getWidth(),inputImage.getHeight(),BufferedImage.TYPE_INT_ARGB);
+    Graphics g = argbImage.createGraphics();
+    g.drawImage(inputImage,0,0,null);
+    g.dispose();
 
-    WritableRaster raster = image.getRaster();
+    int w = argbImage.getWidth();
+    int h = argbImage.getHeight();
+    int n = w*h;
 
-    BitOutputStream bos = new BitOutputStream( new FileOutputStream( fileOut ) ); 
-        
-    for( int colShift = 0; colShift < 32; colShift += 8 ) {
-      DiffOutputCoder diffCoder = new DiffOutputCoder();
+    int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
+    
+    SortedSet<Long> colorSet = new TreeSet<>();
+    for(int i=0; i<n; i++) {
+      Long col = Long.valueOf( data[i] & 0xffffffffL );
+      colorSet.add( col );
+    }
+    SortedMap<Long,Long> colorMap = new TreeMap<>();
+    long[] colorArray = new long[colorSet.size()];
+    for( Long col : colorSet ) {
+    	int idx = colorMap.size();
+    	colorArray[idx] = col.longValue();
+      colorMap.put( col, Long.valueOf( idx ) );
+    }
+
+    try ( BitOutputStream bos = new BitOutputStream( new FileOutputStream( fileOut ) ) )
+    {
+      bos.encodeVarBits( w );
+      bos.encodeVarBits( h );
+      bos.encodeSortedArray( colorArray );
+
+  	  RlH2Encoder encoder = new RlH2Encoder( colorArray.length-1, 4 );
+
       for( int pass=1; pass <=2; pass++ ) {
-        diffCoder.init( bos );
-        for(int i=0; i<w; i++) {
-          for(int j=0; j<h; j++)  {
-                
-            Object data = raster.getDataElements(i, j, null);
-            int argb = model.getRGB(data);
-                
-            int v = (argb >> colShift) & 0xff;
-                
-            diffCoder.writeDiffed(v );
-          }
+        encoder.init( bos );
+        for(int i=0; i<n; i++) {
+          Long col = Long.valueOf( data[i] & 0xffffffffL );
+          encoder.encodeValue( colorMap.get( col ) );
         }
-        diffCoder.finish();
+        encoder.finish();
       }
     }
-    bos.close();
   }
 
   public static void main(String args[]) throws Exception {
     new EncodeImage().processImage( args[0], args[1] );
   }
-} 
+}

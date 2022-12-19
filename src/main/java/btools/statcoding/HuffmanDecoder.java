@@ -23,8 +23,10 @@ public abstract class HuffmanDecoder {
 
   public void init(BitInputStream bis) throws IOException {
     this.bis = bis;
-    tree = decodeTree();
-    this.bis = bis;
+    boolean hasSymbols = bis.decodeBit();
+    if ( hasSymbols ) {
+      tree = decodeTree();
+    }
   }
   
   protected abstract Object decodeObjectFromStream() throws IOException ;
@@ -40,7 +42,7 @@ public abstract class HuffmanDecoder {
     return decodeObjectFromStream();
   }
 
-  public static final class TreeNode {
+  private static final class TreeNode {
     public Object child1;
     public Object child2;
   }

@@ -17,19 +17,22 @@ public abstract class HuffmanEncoder {
 
   protected BitOutputStream bos;
 
-  private HashMap<Object, TreeNode> identityMap = new HashMap<Object, TreeNode>();
+  private HashMap<Object, TreeNode> symbols = new HashMap<Object, TreeNode>();
   private int pass;
-  private int nextTagValueSetId;
+  private long nextTagValueSetId;
 
   public void encodeObject(Object obj) throws IOException {
-    TreeNode tn = identityMap.get(obj);
+    TreeNode tn = symbols.get(obj);
     if (pass == 2) {
+      if ( tn == null ) {
+    	  throw new IllegalArgumentException( "symbol was not seen in pass 1: " + obj );
+      }
       bos.encodeBounded(tn.range - 1, tn.code);
     } else {
       if (tn == null) {
         tn = new TreeNode(nextTagValueSetId++);
         tn.obj = obj;
-        identityMap.put(obj, tn);
+        symbols.put(obj, tn);
       }
       tn.frequency++;
     }
@@ -38,25 +41,26 @@ public abstract class HuffmanEncoder {
   public void init(BitOutputStream bos)  throws IOException {
     this.bos = bos;
     if (++pass == 2) { // encode the dictionary in pass 2
-      if (identityMap.size() == 0) {
-        TreeNode dummy = new TreeNode(nextTagValueSetId++);
-        identityMap.put(dummy, dummy);
+    	
+    	boolean hasSymbols = !symbols.isEmpty();
+    	bos.encodeBit( hasSymbols );
+      if ( hasSymbols ) {
+        PriorityQueue<TreeNode> queue = new PriorityQueue<TreeNode>(2 * symbols.size(), new TreeNode.FrequencyComparator());
+        queue.addAll(symbols.values());
+        while (queue.size() > 1) {
+          TreeNode node = new TreeNode(nextTagValueSetId++);
+          node.child1 = queue.poll();
+          node.child2 = queue.poll();
+          node.frequency = node.child1.frequency + node.child2.frequency;
+          queue.add(node);
+        }
+        TreeNode root = queue.poll();
+        encodeTree(root, 1, 0);
       }
-      PriorityQueue<TreeNode> queue = new PriorityQueue<TreeNode>(2 * identityMap.size(), new TreeNode.FrequencyComparator());
-      queue.addAll(identityMap.values());
-      while (queue.size() > 1) {
-        TreeNode node = new TreeNode(nextTagValueSetId++);
-        node.child1 = queue.poll();
-        node.child2 = queue.poll();
-        node.frequency = node.child1.frequency + node.child2.frequency;
-        queue.add(node);
-      }
-      TreeNode root = queue.poll();
-      encodeTree(root, 1, 0);
     }
   }
 
-  public void encodeTree(TreeNode node, int range, int code) throws IOException {
+  public void encodeTree(TreeNode node, long range, long code) throws IOException {
     node.range = range;
     node.code = code;
     boolean isNode = node.child1 != null;
@@ -70,17 +74,36 @@ public abstract class HuffmanEncoder {
   }
 
   protected abstract void encodeObjectToStream(Object obj) throws IOException;
+  
+  public String getStats() {
+  	double entropy = 0.;
+  	long bits = 0L;
+  	long totfreq = 0L;
+  	int distinct = 0;
+    for( TreeNode tn : symbols.values() ) {
+    	long r = tn.range;
+    	int nbits = 0;
+    	while( r > 1L ) {
+    	  nbits++;
+    	  r >>>= 1;
+    	}
+    	totfreq += tn.frequency;
+    	bits += tn.frequency * nbits;
+    	entropy += Math.log( tn.frequency ) * tn.frequency;
+    	distinct++;
+    }
+    entropy = ( Math.log( totfreq ) * totfreq - entropy ) / Math.log( 2 );
+    return "symbols=" + totfreq + " distinct=" + distinct + " bits=" + bits; // + " entropy=" + entropy;
+  }
+  
 
   private static final class TreeNode {
-    public Object obj;
-    public int frequency;
-    public int code;
-    public int range;
-    public TreeNode child1;
-    public TreeNode child2;
-    private int id; // serial number to make the comparator well defined in case of equal frequencies
+    Object obj;
+    long frequency, code, range;
+    TreeNode child1, child2;
+    long id; // serial number to make the comparator well defined in case of equal frequencies
 
-    public TreeNode(int id) {
+    public TreeNode(long id) {
       this.id = id;
     }
 
@@ -98,10 +121,6 @@ public abstract class HuffmanEncoder {
           return -1;
         if (tn1.id > tn2.id)
           return 1;
-
-        if (tn1 != tn2) {
-          throw new RuntimeException("identity corruption!");
-        }
         return 0;
       }
     }

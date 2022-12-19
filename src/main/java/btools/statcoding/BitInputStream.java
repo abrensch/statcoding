@@ -13,6 +13,7 @@ import java.io.InputStream;
 public final class BitInputStream extends DataInputStream {
 
   private int bits; // bits left in buffer
+  private int eofBits; // dummy bits read after eof
   private long b; // buffer word
 
   public BitInputStream(InputStream is) {
@@ -33,6 +34,9 @@ public final class BitInputStream extends DataInputStream {
   public final long decodeVarBits() throws IOException {
     long range = 0L;
     while (!decodeBit()) {
+    	if ( range == -1L ) {
+    		throw new RuntimeException( "range overflow" );
+      }
       range = ( range << 1) | 1L;
     }
     return range + decodeBounded(range);
@@ -42,6 +46,20 @@ public final class BitInputStream extends DataInputStream {
     boolean isNegative = decodeBit();
     long lv =  decodeVarBits();
     return isNegative ? -lv-1L : lv;
+  }
+
+  public final long decodeBits(int count) throws IOException {
+    fillBuffer();
+    long mask = 0xffffffffffffffffL >>> (64 - count);
+    long value = b & mask;
+    b >>>= count;
+    bits -= count;
+    return value;
+  }
+
+  public long decodeNoisyNumber(int noisybits) throws IOException {
+    long value = decodeBits(noisybits);
+    return value | (decodeVarBits() << noisybits);
   }
 
   /**
@@ -61,14 +79,66 @@ public final class BitInputStream extends DataInputStream {
     return value;
   }
 
+  public long[] decodeSortedArray() throws IOException {
+    int size = (int)decodeVarBits();
+    int nbits = (int)decodeVarBits();
+    long[] values = new long[size];
+    decodeSortedArray(values, 0, size, nbits, 0L);
+    return values;
+  }
+
+  /**
+   * @param values  the array to encode
+   * @param offset  position in this array where to start
+   * @param subsize number of values to encode
+   * @param nextbit bitmask with the most significant bit set to 1
+   * @param value   should be 0
+   * @see #encodeSortedArray
+   */
+  public void decodeSortedArray(long[] values, int offset, int subsize, int nextbitpos, long value) throws IOException {
+    if (subsize == 1) // last-choice shortcut
+    {
+      while (nextbitpos >= 0) {
+      	if ( decodeBit() )
+      	{
+          value |= 1L << nextbitpos;
+        }
+        nextbitpos--;
+      }
+      values[offset] = value;
+      return;
+    }
+    if (nextbitpos < 0L) {
+      while (subsize-- > 0) {
+        values[offset++] = value;
+      }
+      return;
+    }
+
+    int size1 = (int)decodeBounded(subsize);
+    int size2 = subsize - size1;
+
+    if (size1 > 0) {
+      decodeSortedArray(values, offset, size1, nextbitpos - 1, value);
+    }
+    if (size2 > 0) {
+      decodeSortedArray(values, offset + size1, size2, nextbitpos - 1, value | (1L << nextbitpos));
+    }
+  }
+
   private void fillBuffer() throws IOException {
     while (bits < 56) {
       int nextByte = read();
 
       if (nextByte != -1) {
         b |= (nextByte & 0xffL) << bits;
+      } else {
+        eofBits += 8;
       }
       bits += 8;
+    }
+    if ( eofBits >= 64 ) {
+    	throw new RuntimeException( "end of stream !" );
     }
   }
 

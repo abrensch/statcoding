@@ -1,6 +1,7 @@
 package btools.statcoding;
 
 import java.io.*;
+import java.util.*;
 
 import junit.framework.TestCase;
 
@@ -33,6 +34,65 @@ public class BitStreamsTest extends TestCase {
         assertEquals ( bis.decodeSignedVarBits(), -l );
       }
       assertEquals( bis.decodeSignedVarBits(), Long.MIN_VALUE );
+    }
+  }
+
+  public void testSortedArrayEncodeDecode() throws IOException {
+    Random rand = new Random();
+    int size = 1000000;
+    long[] values = new long[size];
+    for (int i = 0; i < size; i++) {
+      values[i] = rand.nextInt() & 0x0fffffffL;
+    }
+    values[5] = 175384L; // force collision
+    values[8] = 175384L;
+
+    values[15] = 275384L; // force neighbours
+    values[18] = 275385L;
+
+    Arrays.sort(values);
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try( BitOutputStream bos = new BitOutputStream( baos ) ) {    
+      bos.encodeSortedArray( values );
+    }
+    ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
+    try( BitInputStream bis = new BitInputStream( bais ) ) {
+      long[] decodedValues = bis.decodeSortedArray();
+      assertTrue ( Arrays.equals( values, decodedValues ) );
+    }
+  }
+
+  public void testArrayEncodeDecode() throws IOException {
+    Random rand = new Random();
+    int size = 62;
+    long[] values = new long[size];
+    long mask = 1L;
+    for (int i = 0; i < size; i++) {
+      values[i] = rand.nextLong() & mask;
+      mask = 1L | (mask <<= 1);
+    }
+    long[] v2 = new long[size];
+    long sum = 0L;
+    for (int i = 0; i < size; i++) {
+    	sum += values[i];
+    	v2[i] = sum;
+    }
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try( BitOutputStream bos = new BitOutputStream( baos ) ) {    
+      bos.encodeSortedArray( v2 );
+    }
+    ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
+    try( BitInputStream bis = new BitInputStream( bais ) ) {
+      long[] decodedValues = bis.decodeSortedArray();
+      long lastValue = 0L;
+      for( int i=0; i< decodedValues.length; i++ ) {
+      	long diff = decodedValues[i] - lastValue;
+      	lastValue = decodedValues[i];
+      	decodedValues[i] = diff;
+      }
+      assertTrue ( Arrays.equals( values, decodedValues ) );
     }
   }
 }
