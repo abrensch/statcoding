@@ -38,7 +38,7 @@ public class RlH2CodingTest extends TestCase {
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
     try( BitInputStream bis = new BitInputStream( bais ) ) {    
 
-      RlH2Decoder dec = new RlH2Decoder( 17, minRunLength );
+      RlH2Decoder dec = new RlH2Decoder();
       dec.init( bis );
       
       for( int i=0; i<nsymbols; i++ ) {

@@ -5,8 +5,8 @@ import java.io.IOException;
 
 public class RlH2Encoder {
 		
-	private long maxValue;
-	private long minRunlength;
+  private long maxValue;
+  private long minRunlength;
   private long lastValue;
   private long contextValue;
   private long repCount;
@@ -18,24 +18,27 @@ public class RlH2Encoder {
   private long rlebits;
   private long rlecount;
 
-	public RlH2Encoder( long maxValue, long minRunlength ) {
-		this.maxValue = maxValue;
-		this.minRunlength = minRunlength;
-  	encoders = new HuffmanEncoder[(int)(maxValue+1)];
+  public RlH2Encoder( long maxValue, long minRunlength ) {
+    this.maxValue = maxValue;
+    this.minRunlength = minRunlength;
+    encoders = new HuffmanEncoder[(int)(maxValue+1)];
   	int n = encoders.length;
   	for( int i=0; i < n; i++ ) {
-		  encoders[i] = new HuffmanEncoder() {
+      encoders[i] = new HuffmanEncoder() {
         @Override
         protected void encodeObjectToStream(Object obj) throws IOException {
           bos.encodeBounded( maxValue+1, ((Long)obj).longValue() + 1L );
         }
       };
     }
-  }	
+  }
 
 
   public void init( BitOutputStream bos ) throws IOException {
-  	pass++;
+  	if ( ++pass == 2 ) {
+      bos.encodeVarBits(maxValue);
+      bos.encodeVarBits(minRunlength);
+  	}
   	this.bos = bos;
   	int n = encoders.length;
   	for( int i=0; i < n; i++ ) {
@@ -48,15 +51,19 @@ public class RlH2Encoder {
   
 
   public void encodeValue( long value ) throws IOException {
+  
+    if ( value < 0L || value > maxValue ) {
+      throw new IllegalArgumentException( "invalid value: " + value + " (maxValue=" + maxValue + ")" );
+    }  
     if (value != lastValue ) {
-    	HuffmanEncoder encoder = encoders[(int)contextValue];
+      HuffmanEncoder encoder = encoders[(int)contextValue];
       if ( repCount >= minRunlength ) {
         encoders[(int)contextValue].encodeObject( rleEscape ); // prefix runlength escape
         if ( pass == 2 ) {
-        	long rlestart = bos.getBitPosition();
+          long rlestart = bos.getBitPosition();
           bos.encodeVarBits( repCount-minRunlength );
-        	rlebits += bos.getBitPosition() - rlestart;
-        	rlecount++;
+          rlebits += bos.getBitPosition() - rlestart;
+          rlecount++;
         }
         repCount = 1;
       }
@@ -80,11 +87,11 @@ public class RlH2Encoder {
   	int n = encoders.length;
   	double totalEntropy = 0.;
   	for( int i=0; i < n; i++ ) {
-  		String stats = encoders[i].getStats();
-  		sb.append( stats ).append( "\n" );
-  		double entropy = Double.parseDouble( stats.substring( stats.lastIndexOf( "=" ) + 1 ) );
-  		totalEntropy += entropy;
-  	}
+      String stats = encoders[i].getStats();
+      sb.append( stats ).append( "\n" );
+      double entropy = Double.parseDouble( stats.substring( stats.lastIndexOf( "=" ) + 1 ) );
+      totalEntropy += entropy;
+    }
     return sb.toString() + "totalEntropy=" + totalEntropy + " rlebits=" + rlebits + " rlecount=" + rlecount;
   }
 }

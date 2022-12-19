@@ -20,11 +20,11 @@ public class DecodeImage {
       BufferedImage argbImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
       int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
-  	  RlH2Decoder decoder = new RlH2Decoder( colorArray.length-1, 4 );
-  	  decoder.init( bis );
+      RlH2Decoder decoder = new RlH2Decoder();
+      decoder.init( bis );
       for(int i=0; i<n; i++) {
-      	int colorIdx = (int) decoder.decodeValue();
-      	data[i] = (int) colorArray[colorIdx];
+        int colorIdx = (int) decoder.decodeValue();
+        data[i] = (int) colorArray[colorIdx];
       }
       ImageIO.write(argbImage, "png" ,new FileOutputStream( fileOut ) );
     }
