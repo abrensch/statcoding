@@ -111,14 +111,20 @@ public final class BitOutputStream extends DataOutputStream {
 
   public void encodeSortedArray(long[] values) throws IOException {
     int size = values.length;
-    long max = values[size-1];
-    int nbits = 1;
-    while ( (max >>>= 1) != 0L ) {
-    	nbits++;
-    }
     encodeVarBits( size );
-    encodeVarBits( nbits );
-    encodeSortedArray( values, 0, size, 1L << nbits, 0L );
+    encodeSortedArray( values, size, 0 );
+  }
+
+  public void encodeSortedArray(long[] values, int size, int minLengthBits ) throws IOException {
+    if ( size > 0 ) {
+      long max = values[size-1];
+      int nbits = 0;
+      while ( (max >>>= 1) != 0L ) {
+    	nbits++;
+      }
+      encodeNoisyNumber( nbits, minLengthBits );
+      encodeSortedArray( values, 0, size, 1L << nbits, 0L );
+    }
   }
 
   /**
@@ -160,7 +166,13 @@ public final class BitOutputStream extends DataOutputStream {
     int size1 = i - offset;
     int size2 = subsize - size1;
 
-    encodeBounded(subsize, size1);
+    if ( subsize > nextbit ) {
+      long max = nextbit;
+      long min = subsize-nextbit;
+      encodeBounded(max-min, size1-min);
+    } else {
+      encodeBounded(subsize, size1);
+    }
     if (size1 > 0) {
       encodeSortedArray(values, offset, size1, nextbit >>> 1, mask);
     }

@@ -49,6 +49,9 @@ public final class BitInputStream extends DataInputStream {
   }
 
   public final long decodeBits(int count) throws IOException {
+    if ( count == 0 ) {
+      return 0L;
+    }
     fillBuffer();
     long mask = 0xffffffffffffffffL >>> (64 - count);
     long value = b & mask;
@@ -81,10 +84,16 @@ public final class BitInputStream extends DataInputStream {
 
   public long[] decodeSortedArray() throws IOException {
     int size = (int)decodeVarBits();
-    int nbits = (int)decodeVarBits();
     long[] values = new long[size];
-    decodeSortedArray(values, 0, size, nbits, 0L);
+    decodeSortedArray( values, size, 0 );
     return values;
+  }
+
+  public void decodeSortedArray(long[] values, int size, int minLengthBits ) throws IOException {
+    if ( size > 0 ) {
+      int nbits = (int)decodeNoisyNumber( minLengthBits );
+      decodeSortedArray(values, 0, size, nbits, 0L);
+    }
   }
 
   /**
@@ -115,7 +124,15 @@ public final class BitInputStream extends DataInputStream {
       return;
     }
 
-    int size1 = (int)decodeBounded(subsize);
+    long nextbit  = 1L << nextbitpos;
+    int size1;
+    if ( subsize > nextbit ) {
+      long max = nextbit;
+      long min = subsize-nextbit;
+      size1 = (int)(decodeBounded(max-min) + min);
+    } else {
+      size1 = (int)decodeBounded(subsize);
+    }
     int size2 = subsize - size1;
 
     if (size1 > 0) {
@@ -137,7 +154,7 @@ public final class BitInputStream extends DataInputStream {
       }
       bits += 8;
     }
-    if ( eofBits >= 64 ) {
+    if ( eofBits >= 256 ) {
     	throw new RuntimeException( "end of stream !" );
     }
   }

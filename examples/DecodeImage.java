@@ -1,4 +1,5 @@
-import btools.statcoding.*;
+import btools.statcoding.BitInputStream;
+import btools.statcoding.arithmetic.RlA2Decoder;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -20,8 +21,9 @@ public class DecodeImage {
       BufferedImage argbImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
       int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
-      RlH2Decoder decoder = new RlH2Decoder();
+      RlA2Decoder decoder = new RlA2Decoder();
       decoder.init( bis );
+
       for(int i=0; i<n; i++) {
         int colorIdx = (int) decoder.decodeValue();
         data[i] = (int) colorArray[colorIdx];

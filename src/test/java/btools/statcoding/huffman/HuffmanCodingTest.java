@@ -1,6 +1,9 @@
-package btools.statcoding;
+package btools.statcoding.huffman;
 
 import java.io.*;
+
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 
 import junit.framework.TestCase;
 

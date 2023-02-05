@@ -1,7 +1,8 @@
-package btools.statcoding;
+package btools.statcoding.huffman;
 
 import java.io.IOException;
 
+import btools.statcoding.BitOutputStream;
 
 public final class DiffOutputCoder {
   private long lastValue;

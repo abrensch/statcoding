@@ -13,7 +13,7 @@ public class BitStreamsTest extends TestCase {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-    try( BitOutputStream bos = new BitOutputStream( baos ) ) {    
+    try( BitOutputStream bos = new BitOutputStream( baos ) ) {
       bos.encodeBit( true );
       bos.encodeBit( false );
       for( long l : testLongs ) {
@@ -24,7 +24,7 @@ public class BitStreamsTest extends TestCase {
       bos.encodeSignedVarBits( Long.MIN_VALUE );
     }
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
-    try( BitInputStream bis = new BitInputStream( bais ) ) {    
+    try( BitInputStream bis = new BitInputStream( bais ) ) {
 
       assertTrue ( bis.decodeBit() );
       assertTrue ( !bis.decodeBit() );
@@ -44,16 +44,21 @@ public class BitStreamsTest extends TestCase {
     for (int i = 0; i < size; i++) {
       values[i] = rand.nextInt() & 0x0fffffffL;
     }
-    values[5] = 175384L; // force collision
-    values[8] = 175384L;
 
-    values[15] = 275384L; // force neighbours
+    // force nearby values
+    values[5] = 175384L;
+    values[8] = 175384L;
+    values[15] = 275384L;
     values[18] = 275385L;
 
     Arrays.sort(values);
 
+    for( int  i=0; i< size; i++ ) {
+      values[i] += i; // force uniqueness
+    }
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try( BitOutputStream bos = new BitOutputStream( baos ) ) {    
+    try( BitOutputStream bos = new BitOutputStream( baos ) ) {
       bos.encodeSortedArray( values );
     }
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
@@ -69,18 +74,18 @@ public class BitStreamsTest extends TestCase {
     long[] values = new long[size];
     long mask = 1L;
     for (int i = 0; i < size; i++) {
-      values[i] = rand.nextLong() & mask;
+      values[i] = ( rand.nextLong() & mask ) + 1L;
       mask = 1L | (mask <<= 1);
     }
     long[] v2 = new long[size];
     long sum = 0L;
     for (int i = 0; i < size; i++) {
-    	sum += values[i];
-    	v2[i] = sum;
+      sum += values[i];
+      v2[i] = sum;
     }
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try( BitOutputStream bos = new BitOutputStream( baos ) ) {    
+    try( BitOutputStream bos = new BitOutputStream( baos ) ) {
       bos.encodeSortedArray( v2 );
     }
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
@@ -88,9 +93,9 @@ public class BitStreamsTest extends TestCase {
       long[] decodedValues = bis.decodeSortedArray();
       long lastValue = 0L;
       for( int i=0; i< decodedValues.length; i++ ) {
-      	long diff = decodedValues[i] - lastValue;
-      	lastValue = decodedValues[i];
-      	decodedValues[i] = diff;
+        long diff = decodedValues[i] - lastValue;
+        lastValue = decodedValues[i];
+        decodedValues[i] = diff;
       }
       assertTrue ( Arrays.equals( values, decodedValues ) );
     }

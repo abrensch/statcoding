@@ -1,7 +1,8 @@
-package btools.statcoding;
+package btools.statcoding.huffman;
 
 import java.io.IOException;
 
+import btools.statcoding.BitOutputStream;
 
 public class RlH2Encoder {
 		
@@ -56,7 +57,6 @@ public class RlH2Encoder {
       throw new IllegalArgumentException( "invalid value: " + value + " (maxValue=" + maxValue + ")" );
     }  
     if (value != lastValue ) {
-      HuffmanEncoder encoder = encoders[(int)contextValue];
       if ( repCount >= minRunlength ) {
         encoders[(int)contextValue].encodeObject( rleEscape ); // prefix runlength escape
         if ( pass == 2 ) {
@@ -79,7 +79,7 @@ public class RlH2Encoder {
 
 
   public void finish() throws IOException {
-  	encodeValue( lastValue+1 );
+    encodeValue( (lastValue+1) % (maxValue+1) );
   }
   
   public String getStats() {

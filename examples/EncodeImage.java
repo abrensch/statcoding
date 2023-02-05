@@ -1,4 +1,5 @@
-import btools.statcoding.*;
+import btools.statcoding.BitOutputStream;
+import btools.statcoding.arithmetic.RlA2Encoder;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -37,6 +38,7 @@ public class EncodeImage {
     	colorArray[idx] = col.longValue();
       colorMap.put( col, Long.valueOf( idx ) );
     }
+    colorSet = null;
 
     try ( BitOutputStream bos = new BitOutputStream( new FileOutputStream( fileOut ) ) )
     {
@@ -44,7 +46,7 @@ public class EncodeImage {
       bos.encodeVarBits( h );
       bos.encodeSortedArray( colorArray );
 
-  	  RlH2Encoder encoder = new RlH2Encoder( colorArray.length-1, 4 );
+  	  RlA2Encoder encoder = new RlA2Encoder( colorArray.length-1, 8 );
 
       for( int pass=1; pass <=2; pass++ ) {
         encoder.init( bos );

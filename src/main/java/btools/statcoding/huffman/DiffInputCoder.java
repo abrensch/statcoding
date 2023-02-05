@@ -1,6 +1,8 @@
-package btools.statcoding;
+package btools.statcoding.huffman;
 
 import java.io.IOException;
+
+import btools.statcoding.BitInputStream;
 
 public final class DiffInputCoder {
 

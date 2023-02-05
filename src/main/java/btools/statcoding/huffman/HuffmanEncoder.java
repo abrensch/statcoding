@@ -1,9 +1,11 @@
-package btools.statcoding;
+package btools.statcoding.huffman;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.PriorityQueue;
+
+import btools.statcoding.BitOutputStream;
 
 /**
  * Encoder for huffman-encoding objects
