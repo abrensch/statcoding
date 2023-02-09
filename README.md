@@ -4,25 +4,36 @@ Statcoding
 Statcoding is a library to help statistically encoding and decoding data,
 refactored from field-proven code from the BRouter project.
 
-Overview
---------
+Refactoring is aimed towards a clearer API with 64-bit default width,
+less performance hacks and a more educational structure,
+minimal edge-cases and glitches
 
+There's also arithmetic encoding (not used in BRouter)
 
-Examples
---------
+The arithemtic code is heavily inspired by:
+https://github.com/nayuki/Reference-arithmetic-coding
 
 
 Usage
 -----
 
-The statcoding library is available from the Maven central repository,
-the Maven dependency being:
+ - Compile the library:
 
-    <dependency>
-      <groupId>btools.statcoding</groupId>
-      <artifactId>statcoding</artifactId>
-      <version>0.0.1</version>
-    </dependency>
+   mvn install
+
+Examples
+--------
+
+ - Compile the image-compression example:
+
+   cd statcoding
+   javac -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
+
+ - Run the image-compression example:
+
+   java -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. EncodeImage test.png test.bin
+   java -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. DecodeImage test.bin test2.png
+
 
 Release History
 ---------------
