@@ -15,8 +15,8 @@ public class RlA2Decoder {
   private long rleEscape = 0L;
 
   public void init( BitInputStream bis ) throws IOException {
-    maxValue = bis.decodeVarBits();
-    minRunlength = bis.decodeVarBits();
+    maxValue = bis.decodeUnsignedVarBits( 0 );
+    minRunlength = bis.decodeUnsignedVarBits( 0 );
   	int n = (int)(maxValue)+2;
   	aDecoder = new ArithmeticDecoder( bis );
   	decoders = new ACContextDecoder[n];

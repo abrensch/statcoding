@@ -40,11 +40,11 @@ public final class ACContextEncoder {
       BitOutputStream bos = encoder.getOutputStream();
 
       // encode statistics
-      bos.encodeVarBits( size );
+      bos.encodeUnsignedVarBits( size, 0 );
       if ( size > 1 ) { // need no stats for size = 1
-        bos.encodeSortedArray(stats, size, 0 );
+        bos.encodeUniqueSortedArray(stats, 0, size, 0 );
       }
-      bos.encodeSortedArray(idx2symbol, size, 3 );
+      bos.encodeUniqueSortedArray(idx2symbol, 0, size, 3 );
     }
   }
 

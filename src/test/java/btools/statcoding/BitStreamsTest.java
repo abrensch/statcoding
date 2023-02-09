@@ -17,11 +17,11 @@ public class BitStreamsTest extends TestCase {
       bos.encodeBit( true );
       bos.encodeBit( false );
       for( long l : testLongs ) {
-        bos.encodeVarBits( l );
-        bos.encodeSignedVarBits( l );
-        bos.encodeSignedVarBits( -l );
+        bos.encodeUnsignedVarBits( l, 0 );
+        bos.encodeSignedVarBits( l, 0 );
+        bos.encodeSignedVarBits( -l, 0 );
       }
-      bos.encodeSignedVarBits( Long.MIN_VALUE );
+      bos.encodeSignedVarBits( Long.MIN_VALUE, 0 );
     }
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
     try( BitInputStream bis = new BitInputStream( bais ) ) {
@@ -29,11 +29,11 @@ public class BitStreamsTest extends TestCase {
       assertTrue ( bis.decodeBit() );
       assertTrue ( !bis.decodeBit() );
       for( long l : testLongs ) {
-        assertEquals ( bis.decodeVarBits(), l );
-        assertEquals ( bis.decodeSignedVarBits(), l );
-        assertEquals ( bis.decodeSignedVarBits(), -l );
+        assertEquals ( bis.decodeUnsignedVarBits( 0 ), l );
+        assertEquals ( bis.decodeSignedVarBits( 0 ), l );
+        assertEquals ( bis.decodeSignedVarBits( 0 ), -l );
       }
-      assertEquals( bis.decodeSignedVarBits(), Long.MIN_VALUE );
+      assertEquals( bis.decodeSignedVarBits( 0 ), Long.MIN_VALUE );
     }
   }
 
@@ -59,11 +59,11 @@ public class BitStreamsTest extends TestCase {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try( BitOutputStream bos = new BitOutputStream( baos ) ) {
-      bos.encodeSortedArray( values );
+      bos.encodeUniqueSortedArray( values );
     }
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
     try( BitInputStream bis = new BitInputStream( bais ) ) {
-      long[] decodedValues = bis.decodeSortedArray();
+      long[] decodedValues = bis.decodeUniqueSortedArray();
       assertTrue ( Arrays.equals( values, decodedValues ) );
     }
   }
@@ -86,11 +86,11 @@ public class BitStreamsTest extends TestCase {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try( BitOutputStream bos = new BitOutputStream( baos ) ) {
-      bos.encodeSortedArray( v2 );
+      bos.encodeUniqueSortedArray( v2 );
     }
     ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
     try( BitInputStream bis = new BitInputStream( bais ) ) {
-      long[] decodedValues = bis.decodeSortedArray();
+      long[] decodedValues = bis.decodeUniqueSortedArray();
       long lastValue = 0L;
       for( int i=0; i< decodedValues.length; i++ ) {
         long diff = decodedValues[i] - lastValue;

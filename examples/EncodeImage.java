@@ -42,9 +42,9 @@ public class EncodeImage {
 
     try ( BitOutputStream bos = new BitOutputStream( new FileOutputStream( fileOut ) ) )
     {
-      bos.encodeVarBits( w );
-      bos.encodeVarBits( h );
-      bos.encodeSortedArray( colorArray );
+      bos.encodeUnsignedVarBits( w, 9 );
+      bos.encodeUnsignedVarBits( h, 9 );
+      bos.encodeUniqueSortedArray( colorArray );
 
   	  RlA2Encoder encoder = new RlA2Encoder( colorArray.length-1, 8 );
 

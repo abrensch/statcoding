@@ -37,8 +37,8 @@ public class RlH2Encoder {
 
   public void init( BitOutputStream bos ) throws IOException {
   	if ( ++pass == 2 ) {
-      bos.encodeVarBits(maxValue);
-      bos.encodeVarBits(minRunlength);
+      bos.encodeUnsignedVarBits(maxValue, 0 );
+      bos.encodeUnsignedVarBits(minRunlength, 0 );
   	}
   	this.bos = bos;
   	int n = encoders.length;
@@ -61,7 +61,7 @@ public class RlH2Encoder {
         encoders[(int)contextValue].encodeObject( rleEscape ); // prefix runlength escape
         if ( pass == 2 ) {
           long rlestart = bos.getBitPosition();
-          bos.encodeVarBits( repCount-minRunlength );
+          bos.encodeUnsignedVarBits( repCount-minRunlength, 0 );
           rlebits += bos.getBitPosition() - rlestart;
           rlecount++;
         }

@@ -31,7 +31,13 @@ public final class BitInputStream extends DataInputStream {
   /**
    * @see #encodeVarBits
    */
-  public final long decodeVarBits() throws IOException {
+  public final long decodeUnsignedVarBits(int noisybits) throws IOException {
+    long noisyValue = decodeBits(noisybits);
+    long range = decodeRange();
+    return noisyValue | ( ( range + decodeBounded(range) ) << noisybits );
+  }
+  
+  private long decodeRange() throws IOException {
     long range = 0L;
     while (!decodeBit()) {
     	if ( range == -1L ) {
@@ -39,13 +45,18 @@ public final class BitInputStream extends DataInputStream {
       }
       range = ( range << 1) | 1L;
     }
-    return range + decodeBounded(range);
+    return range;
+  }
+  
+
+  public final long decodeSignedVarBits( int noisybits ) throws IOException {
+    boolean isNegative = decodeBit();
+    long lv =  decodeUnsignedVarBits( noisybits );
+    return isNegative ? -lv-1L : lv;
   }
 
-  public final long decodeSignedVarBits() throws IOException {
-    boolean isNegative = decodeBit();
-    long lv =  decodeVarBits();
-    return isNegative ? -lv-1L : lv;
+  private final long restoreSignBit( long value ) {
+    return ( value & 1L ) == 0L ? value >>> 1 : -(value >>> 1) -1L;
   }
 
   public final long decodeBits(int count) throws IOException {
@@ -58,11 +69,6 @@ public final class BitInputStream extends DataInputStream {
     b >>>= count;
     bits -= count;
     return value;
-  }
-
-  public long decodeNoisyNumber(int noisybits) throws IOException {
-    long value = decodeBits(noisybits);
-    return value | (decodeVarBits() << noisybits);
   }
 
   /**
@@ -82,29 +88,46 @@ public final class BitInputStream extends DataInputStream {
     return value;
   }
 
-  public long[] decodeSortedArray() throws IOException {
-    int size = (int)decodeVarBits();
+  /**
+   * Decoding twin to {@link BitOutputStream#encodeUniqueSortedArray( long[] )}
+   *
+   * @return the decoded array of sorted, positive, unique longs
+   */
+  public long[] decodeUniqueSortedArray() throws IOException {
+    int size = (int)decodeUnsignedVarBits( 0 );
     long[] values = new long[size];
-    decodeSortedArray( values, size, 0 );
+    decodeUniqueSortedArray( values, 0, size, 0 );
     return values;
   }
 
-  public void decodeSortedArray(long[] values, int size, int minLengthBits ) throws IOException {
+  /**
+   * Decoding twin to {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, int )}
+   * <br>See also {@link #decodeUniqueSortedArray()}
+   *
+   * @param values  the array to decode into
+   * @param offset  position in this array where to start
+   * @param size    number of values to decode
+   * @param minLengthBits noisyBits used to encode bitlength of largest value
+   */
+  public void decodeUniqueSortedArray(long[] values, int offset, int size, int minLengthBits ) throws IOException {
     if ( size > 0 ) {
-      int nbits = (int)decodeNoisyNumber( minLengthBits );
-      decodeSortedArray(values, 0, size, nbits, 0L);
+      int nbits = (int)decodeUnsignedVarBits( minLengthBits );
+      decodeUniqueSortedArray(values, 0, size, nbits, 0L);
     }
   }
 
   /**
+   * Decoding twin to {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, long, long )}
+   * <br>(except that current bit is provided by postion, not bitmask)
+   * <br>See also {@link #decodeUniqueSortedArray( long[], int, int, int )}
+   *
    * @param values  the array to encode
    * @param offset  position in this array where to start
    * @param subsize number of values to encode
-   * @param nextbit bitmask with the most significant bit set to 1
-   * @param value   should be 0
-   * @see #encodeSortedArray
+   * @param nextbitpos bitposition of the most significant bit
+   * @param value   should be 0 at recursion start
    */
-  public void decodeSortedArray(long[] values, int offset, int subsize, int nextbitpos, long value) throws IOException {
+  protected void decodeUniqueSortedArray(long[] values, int offset, int subsize, int nextbitpos, long value) throws IOException {
     if (subsize == 1) // last-choice shortcut
     {
       while (nextbitpos >= 0) {
@@ -136,10 +159,10 @@ public final class BitInputStream extends DataInputStream {
     int size2 = subsize - size1;
 
     if (size1 > 0) {
-      decodeSortedArray(values, offset, size1, nextbitpos - 1, value);
+      decodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, value);
     }
     if (size2 > 0) {
-      decodeSortedArray(values, offset + size1, size2, nextbitpos - 1, value | (1L << nextbitpos));
+      decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | (1L << nextbitpos));
     }
   }
 

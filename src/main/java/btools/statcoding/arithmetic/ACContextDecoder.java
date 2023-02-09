@@ -23,14 +23,14 @@ public final class ACContextDecoder {
     BitInputStream bis = decoder.getInputStream();
 
     // decode statistics
-    int size = (int)bis.decodeVarBits();
+    int size = (int)bis.decodeUnsignedVarBits( 0 );
     if ( size > 1 ) { // need no stats for size = 1
     	stats = new long[size];      	
-      bis.decodeSortedArray(stats, size, 0 );
+      bis.decodeUniqueSortedArray(stats, 0, size, 0 );
     }
     if ( size > 0 ) {
     	idx2symbol = new long[size]; 
-      bis.decodeSortedArray(idx2symbol, size, 3 );
+      bis.decodeUniqueSortedArray(idx2symbol, 0, size, 3 );
     }
   }
 

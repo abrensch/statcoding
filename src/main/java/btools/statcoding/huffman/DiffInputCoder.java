@@ -35,7 +35,7 @@ public final class DiffInputCoder {
 		
     @Override
     protected Object decodeObjectFromStream() throws IOException {
-      long lv = bis.decodeVarBits();
+      long lv = bis.decodeUnsignedVarBits( 0 );
       return Long.valueOf( lv );
     }
   }
@@ -44,7 +44,7 @@ public final class DiffInputCoder {
   {
     @Override
     protected Object decodeObjectFromStream() throws IOException {
-      long lv = bis.decodeSignedVarBits();
+      long lv = bis.decodeSignedVarBits( 0 );
       return Long.valueOf( lv );
     }
   }

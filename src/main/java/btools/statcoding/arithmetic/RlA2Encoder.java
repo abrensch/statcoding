@@ -31,8 +31,8 @@ public class RlA2Encoder {
 
   public void init( BitOutputStream bos ) throws IOException {
     if ( ++pass == 2 ) {
-      bos.encodeVarBits(maxValue);
-      bos.encodeVarBits(minRunlength);
+      bos.encodeUnsignedVarBits( maxValue, 0 );
+      bos.encodeUnsignedVarBits( minRunlength, 0 );
       aEncoder = new ArithmeticEncoder( bos );
     }
     int n = encoders.length;

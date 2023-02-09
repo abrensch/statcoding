@@ -17,8 +17,8 @@ public class RlH2Decoder {
   public void init( BitInputStream bis ) throws IOException {
   	this.bis = bis;
 
-    maxValue = bis.decodeVarBits();
-    minRunlength = bis.decodeVarBits();
+    maxValue = bis.decodeUnsignedVarBits( 0 );
+    minRunlength = bis.decodeUnsignedVarBits( 0 );
   	int n = (int)(maxValue)+1;
   	decoders = new HuffmanDecoder[n];
   	for( int i=0; i < n; i++ ) {
@@ -43,7 +43,7 @@ public class RlH2Decoder {
     HuffmanDecoder decoder = decoders[(int)lastValue];
     Long v = (Long)decoder.decodeObject();
 	    if ( v.equals( rleEscape ) ) {
-    	repCount = bis.decodeVarBits() + minRunlength - 1;
+    	repCount = bis.decodeUnsignedVarBits( 0 ) + minRunlength - 1;
     	v = (Long)decoder.decodeObject();
 	    if ( v.equals( rleEscape ) ) {
 	    	throw new RuntimeException( "unexpected rle!" );

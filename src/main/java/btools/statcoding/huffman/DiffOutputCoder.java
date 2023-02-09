@@ -48,7 +48,7 @@ public final class DiffOutputCoder {
     @Override
     protected void encodeObjectToStream(Object obj) throws IOException {
       long lv = ((Long)obj).longValue();
-      bos.encodeVarBits( lv );
+      bos.encodeUnsignedVarBits( lv, 0 );
     }
   }
 
@@ -57,7 +57,7 @@ public final class DiffOutputCoder {
     @Override
     protected void encodeObjectToStream(Object obj) throws IOException {
       long lv = ((Long)obj).longValue();
-      bos.encodeSignedVarBits( lv );
+      bos.encodeSignedVarBits( lv, 0 );
     }
   }
 }

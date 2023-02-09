@@ -28,7 +28,7 @@ public class HuffmanCodingTest extends TestCase {
       HuffmanEncoder enc = new HuffmanEncoder() {
         @Override
         protected void encodeObjectToStream(Object obj) throws IOException {
-          bos.encodeVarBits( ((Long)obj).longValue() );
+          bos.encodeUnsignedVarBits( ((Long)obj).longValue(), 0 );
         }
       };
       	
@@ -46,7 +46,7 @@ public class HuffmanCodingTest extends TestCase {
       HuffmanDecoder dec = new HuffmanDecoder() {
         @Override
         protected Object decodeObjectFromStream() throws IOException {
-          return Long.valueOf( bis.decodeVarBits() );
+          return Long.valueOf( bis.decodeUnsignedVarBits( 0 ) );
         }
       };
       dec.init( bis );

@@ -14,10 +14,10 @@ public class DecodeImage {
   private void processImage( String fileIn, String fileOut ) throws Exception {
 
     try ( BitInputStream bis = new BitInputStream( new FileInputStream( fileIn ) ) ) {
-      int w = (int)bis.decodeVarBits();
-      int h = (int)bis.decodeVarBits();
+      int w = (int)bis.decodeUnsignedVarBits(9);
+      int h = (int)bis.decodeUnsignedVarBits(9);
       int n = w*h;
-      long[] colorArray = bis.decodeSortedArray();
+      long[] colorArray = bis.decodeUniqueSortedArray();
       BufferedImage argbImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
       int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
