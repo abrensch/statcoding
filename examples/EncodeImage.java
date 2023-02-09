@@ -8,24 +8,40 @@ import java.io.*;
 import java.util.*;
 import javax.imageio.ImageIO;
 
+/**
+ * Simple example for image compression.
+ * 
+ * It first extracts the palette, indexing all distinct ARGB values, and then
+ * encodes the series of these index values using a standard model ( 2nd order
+ * arithmetic encoding with fixed statistics + run length escape )
+ * 
+ * It works o.k. over the whole range of images types (graphics, map-tiles,
+ * screenshots, photos) and mostly beats PNG in compression ratio.
+ * 
+ * However, for a large number of distinct colors it's not that good in terms of
+ * performance and memory footprint.
+ * 
+ * So this is NOT a proposal for a new image format (there are plenty already)
+ * but just a demo on how the statcoding library could work also for other kinds
+ * of data.
+ */
 public class EncodeImage {
 
-	private void processImage(String fileIn, String fileOut) throws Exception {
+	private void processImage(File fileIn, File fileOut) throws Exception {
 
-		File file = new File(fileIn);
-		BufferedImage inputImage = ImageIO.read(file);
+		// read image and convert to a standard ARGB representation
+		BufferedImage inputImage = ImageIO.read(fileIn);
 		BufferedImage argbImage = new BufferedImage(inputImage.getWidth(), inputImage.getHeight(),
 				BufferedImage.TYPE_INT_ARGB);
 		Graphics g = argbImage.createGraphics();
 		g.drawImage(inputImage, 0, 0, null);
 		g.dispose();
-
 		int w = argbImage.getWidth();
 		int h = argbImage.getHeight();
 		int n = w * h;
-
 		int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
+		// extract the color palette and sort by ARGB value
 		SortedSet<Long> colorSet = new TreeSet<>();
 		for (int i = 0; i < n; i++) {
 			Long col = Long.valueOf(data[i] & 0xffffffffL);
@@ -41,12 +57,18 @@ public class EncodeImage {
 		colorSet = null;
 
 		try (BitOutputStream bos = new BitOutputStream(new FileOutputStream(fileOut))) {
+
+			// encode the imega dimensions
 			bos.encodeUnsignedVarBits(w, 9);
 			bos.encodeUnsignedVarBits(h, 9);
+
+			// encode the coor palette
 			bos.encodeUniqueSortedArray(colorArray);
 
+			// encode the series of color index values using RlA2Encoder
+			// (=2nd order arithmetic encoding + runlengh-escape)
+			// using 2-pass encoding (pass1: collect stats, pass2: encode)
 			RlA2Encoder encoder = new RlA2Encoder(colorArray.length - 1, 8);
-
 			for (int pass = 1; pass <= 2; pass++) {
 				encoder.init(bos);
 				for (int i = 0; i < n; i++) {
@@ -59,6 +81,6 @@ public class EncodeImage {
 	}
 
 	public static void main(String args[]) throws Exception {
-		new EncodeImage().processImage(args[0], args[1]);
+		new EncodeImage().processImage( new File( args[0] ), new File (args[1] ) );
 	}
 }

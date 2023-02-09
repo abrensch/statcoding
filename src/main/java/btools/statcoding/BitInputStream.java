@@ -1,22 +1,146 @@
 package btools.statcoding;
 
-/**
- * DataInputStream for decoding fast-compact encoded number sequences
- *
- * @author ab
- */
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public final class BitInputStream extends DataInputStream {
+/**
+ * BitInputStream is a replacement for java.io.DataInputStream extending it by
+ * bitwise operations suitable for statistical decoding
+ *
+ * It automatically re-aligns to byte-alignment as soon as any of the methods of
+ * InputStream or DataOutput or its own method 'decodeVarBytes' is called
+ * 
+ * Please note that BitInputStream buffers up to 8 bytes from the underlying
+ * stream, and it has a somewhat sloppy EOF detection, so it may not work as a
+ * plugin-replacement for java.io.DataInputStream in all cases
+ */
+public final class BitInputStream extends InputStream implements DataInput {
 
 	private int bits; // bits left in buffer
 	private int eofBits; // dummy bits read after eof
 	private long b; // buffer word
 
+	private InputStream in;
+	private DataInputStream dis; // created lazily if needed
+
 	public BitInputStream(InputStream is) {
-		super(is);
+		in = is;
+	}
+
+	private int readInternal() throws IOException {
+		return in.read();
+	}
+
+	@Override
+	public int read() throws IOException {
+
+		if (bits > 0) {
+			while ((bits & 7) > 0) { // any padding bits left?
+				if ((b & 1L) != 0L) {
+					throw new IOException("re-alignmet-failure: found non-zero padding bit");
+				}
+				b >>>= 1;
+				bits--;
+			}
+			if (bits > 7) { // can read byte from bit-buffer
+				long value = b & 0xffL;
+				b >>>= 8;
+				bits -= 8;
+				return (int) value;
+			}
+		}
+		return readInternal();
+	}
+
+	@Override
+	public int available() throws IOException {
+		return (bits >> 3) + in.available();
+	}
+
+	// delegate Methods of DataInput to an instance of
+	// DataInputStream created lazily
+	private DataInputStream getDis() {
+		if (dis == null) {
+			dis = new DataInputStream(this);
+		}
+		return dis;
+	}
+
+	@Override
+	public void readFully(byte b[]) throws IOException {
+		getDis().readFully(b);
+	}
+
+	@Override
+	public void readFully(byte b[], int off, int len) throws IOException {
+		getDis().readFully(b, off, len);
+	}
+
+	@Override
+	public int skipBytes(int n) throws IOException {
+		return getDis().skipBytes(n);
+	}
+
+	@Override
+	public boolean readBoolean() throws IOException {
+		return getDis().readBoolean();
+	}
+
+	@Override
+	public byte readByte() throws IOException {
+		return getDis().readByte();
+	}
+
+	@Override
+	public int readUnsignedByte() throws IOException {
+		return getDis().readUnsignedByte();
+	}
+
+	@Override
+	public short readShort() throws IOException {
+		return getDis().readShort();
+	}
+
+	@Override
+	public int readUnsignedShort() throws IOException {
+		return getDis().readUnsignedShort();
+	}
+
+	@Override
+	public char readChar() throws IOException {
+		return getDis().readChar();
+	}
+
+	@Override
+	public int readInt() throws IOException {
+		return getDis().readInt();
+	}
+
+	@Override
+	public long readLong() throws IOException {
+		return getDis().readLong();
+	}
+
+	@Override
+	public float readFloat() throws IOException {
+		return getDis().readFloat();
+	}
+
+	@Override
+	public double readDouble() throws IOException {
+		return getDis().readDouble();
+	}
+
+	@Override
+	public String readLine() throws IOException {
+		return getDis().readLine();
+	}
+
+	@Override
+	public String readUTF() throws IOException {
+		return getDis().readUTF();
 	}
 
 	public final boolean decodeBit() throws IOException {
@@ -169,7 +293,7 @@ public final class BitInputStream extends DataInputStream {
 
 	private void fillBuffer() throws IOException {
 		while (bits < 56) {
-			int nextByte = read();
+			int nextByte = readInternal();
 
 			if (nextByte != -1) {
 				b |= (nextByte & 0xffL) << bits;

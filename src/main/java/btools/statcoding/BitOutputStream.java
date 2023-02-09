@@ -1,42 +1,143 @@
 package btools.statcoding;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-/**
- * DataOutputStream for fast-compact encoding of number sequences
- *
- * @author ab
- */
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public final class BitOutputStream extends DataOutputStream {
+/**
+ * BitOutputStream is a replacement for java.io.DataOutputStream extending it by
+ * bitwise operations suitable for statistical encoding
+ *
+ * It automatically re-aligns to byte-alignment as soon as any of the methods of
+ * OutputStream or DataOutput or its own method 'encodeVarBytes' is called
+ */
+public final class BitOutputStream extends OutputStream implements DataOutput {
 
 	private int bits; // bits left in buffer
 	private long b; // buffer word
-	private long bytesWritten = 0L;
+	private long bytesWritten;
+
+	private OutputStream out;
+	private DataOutputStream dos; // created lazily if needed
 
 	public BitOutputStream(OutputStream os) {
-		super(os);
+		out = os;
+	}
+
+	private void writeLowByte(long b) throws IOException {
+		writeInternal((int) (b & 0xffL));
+	}
+
+	public void writeInternal(int b) throws IOException {
+		out.write(b);
+		bytesWritten++;
+	}
+
+	public void write(int b) throws IOException {
+		flushBufferAndReAlign();
+		writeInternal(b);
+	}
+
+	// delegate Methods of DataOutput to an instance of
+	// DataOutputStream created lazily
+	private DataOutputStream getDos() {
+		if (dos == null) {
+			dos = new DataOutputStream(this);
+		}
+		return dos;
+	}
+
+	@Override
+	public void writeBoolean(boolean v) throws IOException {
+		getDos().writeBoolean(v);
+	}
+
+	@Override
+	public void writeByte(int v) throws IOException {
+		getDos().writeByte(v);
+	}
+
+	@Override
+	public void writeShort(int v) throws IOException {
+		getDos().writeShort(v);
+	}
+
+	@Override
+	public void writeChar(int v) throws IOException {
+		getDos().writeChar(v);
+	}
+
+	@Override
+	public void writeInt(int v) throws IOException {
+		getDos().writeInt(v);
+	}
+
+	@Override
+	public void writeLong(long v) throws IOException {
+		getDos().writeLong(v);
+	}
+
+	@Override
+	public void writeFloat(float v) throws IOException {
+		getDos().writeFloat(v);
+	}
+
+	@Override
+	public void writeDouble(double v) throws IOException {
+		getDos().writeDouble(v);
+	}
+
+	@Override
+	public void writeBytes(String s) throws IOException {
+		getDos().writeBytes(s);
+	}
+
+	@Override
+	public void writeChars(String s) throws IOException {
+		getDos().writeChars(s);
+	}
+
+	@Override
+	public void writeUTF(String s) throws IOException {
+		getDos().writeUTF(s);
 	}
 
 	private void flushBuffer() throws IOException {
 		while (bits > 7) {
-			writeByte((byte) (b & 0xffL));
+			writeLowByte(b);
 			b >>>= 8;
 			bits -= 8;
-			bytesWritten++;
 		}
+	}
+
+	private void flushBufferAndReAlign() throws IOException {
+		while (bits > 0) {
+			writeLowByte(b);
+			b >>>= 8;
+			bits -= 8;
+		}
+		bits = 0;
+	}
+
+	/**
+	 * Flushes the underlying output stream
+	 * 
+	 * Please note that this does not trigger re-alignment, so if this
+	 * BitoutputStream is not currently byte-aligned, then the bit-buffer is not
+	 * flushed
+	 *
+	 * @throws IOException if an I/O error occurs.
+	 */
+	@Override
+	public void flush() throws IOException {
+		out.flush();
 	}
 
 	@Override
 	public void close() throws IOException {
-		flushBuffer();
-		if (bits > 0) {
-			writeByte((byte) (b & 0xff));
-		}
-		super.close();
+		flushBufferAndReAlign();
+		out.close();
 	}
 
 	public long getBitPosition() {
@@ -53,7 +154,7 @@ public final class BitOutputStream extends DataOutputStream {
 
 	public final void encodeUnsignedVarBits(long value, int noisybits) throws IOException {
 		if (value < 0) {
-			throw new IllegalArgumentException("encodeUnsignedVarBits expects positive values: " + value);
+			throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative values: " + value);
 		}
 		if (noisybits > 0) {
 			encodeBits(noisybits, value);
@@ -77,14 +178,15 @@ public final class BitOutputStream extends DataOutputStream {
 	}
 
 	public final void encodeVarBytes(long value) throws IOException {
+		flushBufferAndReAlign();
 		long v = moveSignBit(value);
 		for (;;) {
 			long v7 = v & 0x7f;
 			if ((v >>>= 7) == 0L) {
-				writeByte((byte) (v7 & 0xffL));
+				writeLowByte(v7);
 				return;
 			}
-			writeByte((byte) ((v7 | 0x80L) & 0xffL));
+			writeLowByte(v7 | 0x80L);
 		}
 	}
 
@@ -213,31 +315,4 @@ public final class BitOutputStream extends DataOutputStream {
 			encodeUniqueSortedArray(values, i, size2, nextbit >>> 1, mask);
 		}
 	}
-
-	public static void main(String[] args) throws IOException {
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-		try (BitOutputStream bos = new BitOutputStream(baos)) {
-			bos.encodeSignedVarBits(Long.MAX_VALUE, 0);
-			bos.encodeSignedVarBits(Long.MIN_VALUE, 0);
-		}
-		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-		try (BitInputStream bis = new BitInputStream(bais)) {
-
-			assertEquals(bis.decodeSignedVarBits(0), Long.MAX_VALUE);
-			assertEquals(bis.decodeSignedVarBits(0), Long.MIN_VALUE);
-		}
-	}
-
-	private static void assertTrue(boolean b) {
-		if (!b)
-			throw new RuntimeException("not true!");
-	}
-
-	private static void assertEquals(long l1, long l2) {
-		if (l1 != l2)
-			throw new RuntimeException("found " + l1 + " but expected " + l2);
-	}
-
 }
