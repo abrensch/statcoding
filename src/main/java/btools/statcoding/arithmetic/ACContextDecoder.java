@@ -6,7 +6,14 @@ import java.util.*;
 import btools.statcoding.BitInputStream;
 
 /**
- * Decodes stats and symbols from arithmentic decoder
+ * Decoder for arithmetic decoding that manages the statistics and
+ * the re-mapping of symbols to the original numbering.
+ *
+ * The actual arithmetic decoder that decodes the symbols from the
+ * bitstream must be provided and can be shared over multiple-instance of
+ * ACContextDecoder
+ *
+ * @see ACContextEncoder
  */
 public final class ACContextDecoder {
 

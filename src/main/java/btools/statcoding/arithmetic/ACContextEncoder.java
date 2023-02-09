@@ -6,10 +6,17 @@ import java.util.*;
 import btools.statcoding.BitOutputStream;
 
 /**
- * Encodes symbols and writes to an arithmetic-coded bit stream. Not
- * thread-safe.
- * 
- * @see ArithmeticDecoder
+ * Encoder for arithmetic encoding that manages the statistics and offers an
+ * interface for 2-pass encoding.
+ *
+ * It uses an additional indirection to re-map the symbols to encode to the
+ * smaller set of symbols that are actually observed.
+ *
+ * The actual arithmetic coder that encodes the (re-mapped) symbols to the
+ * bitstream must be provided and can be shared over multiple-instance of
+ * ACContextEncoder
+ *
+ * @see ACContextDecoder
  */
 public final class ACContextEncoder {
 
