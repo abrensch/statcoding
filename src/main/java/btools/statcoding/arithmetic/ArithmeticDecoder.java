@@ -7,7 +7,10 @@ import btools.statcoding.BitInputStream;
 /**
  * Reads from an arithmetic-coded bit stream and decodes symbols. Not
  * thread-safe.
- * 
+ *
+ * This code is mostly taken from:
+ * https://github.com/nayuki/Reference-arithmetic-coding
+ *
  * @see ArithmeticEncoder
  */
 public final class ArithmeticDecoder extends ArithmeticCoderBase {

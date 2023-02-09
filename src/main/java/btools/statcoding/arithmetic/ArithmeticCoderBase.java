@@ -6,6 +6,9 @@ import java.io.IOException;
  * Provides the state and behaviors that arithmetic coding encoders and decoders
  * share.
  * 
+ * This code is mostly taken from:
+ * https://github.com/nayuki/Reference-arithmetic-coding
+ *
  * @see ArithmeticEncoder
  * @see ArithmeticDecoder
  */

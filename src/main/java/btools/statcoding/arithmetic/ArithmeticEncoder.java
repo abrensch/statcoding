@@ -8,7 +8,10 @@ import btools.statcoding.BitOutputStream;
 /**
  * Encodes symbols and writes to an arithmetic-coded bit stream. Not
  * thread-safe.
- * 
+ *
+ * This code is mostly taken from:
+ * https://github.com/nayuki/Reference-arithmetic-coding
+ *
  * @see ArithmeticDecoder
  */
 public final class ArithmeticEncoder extends ArithmeticCoderBase {

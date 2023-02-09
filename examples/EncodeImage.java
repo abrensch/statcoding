@@ -58,11 +58,11 @@ public class EncodeImage {
 
 		try (BitOutputStream bos = new BitOutputStream(new FileOutputStream(fileOut))) {
 
-			// encode the imega dimensions
+			// encode the image dimensions
 			bos.encodeUnsignedVarBits(w, 9);
 			bos.encodeUnsignedVarBits(h, 9);
 
-			// encode the coor palette
+			// encode the color palette
 			bos.encodeUniqueSortedArray(colorArray);
 
 			// encode the series of color index values using RlA2Encoder

@@ -18,18 +18,18 @@ public class DecodeImage {
 	private void processImage(String fileIn, String fileOut) throws Exception {
 
 		try (BitInputStream bis = new BitInputStream(new FileInputStream(fileIn))) {
-		
-		    // decode the image dimensions
+
+			// decode the image dimensions
 			int w = (int) bis.decodeUnsignedVarBits(9);
 			int h = (int) bis.decodeUnsignedVarBits(9);
 			int n = w * h;
 
-		    // decode the color palette
+			// decode the color palette
 			long[] colorArray = bis.decodeUniqueSortedArray();
 			BufferedImage argbImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 			int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
-		    // decode the color index values and fill the image
+			// decode the color index values and fill the image
 			RlA2Decoder decoder = new RlA2Decoder();
 			decoder.init(bis);
 			for (int i = 0; i < n; i++) {
@@ -37,7 +37,7 @@ public class DecodeImage {
 				data[i] = (int) colorArray[colorIdx];
 			}
 
-		    // re-write the image in PNG format
+			// re-write the image in PNG format
 			ImageIO.write(argbImage, "png", new FileOutputStream(fileOut));
 		}
 	}
