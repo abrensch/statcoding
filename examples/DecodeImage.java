@@ -26,6 +26,8 @@ public class DecodeImage {
 
 			// decode the color palette
 			long[] colorArray = bis.decodeUniqueSortedArray();
+
+			// create an empty ARGB image
 			BufferedImage argbImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 			int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
