@@ -32,6 +32,7 @@ Examples
  - Run the image-compression example:
 
    java -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. EncodeImage test.png test.bin
+
    java -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. DecodeImage test.bin test2.png
 
 
