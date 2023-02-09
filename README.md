@@ -27,6 +27,7 @@ Examples
  - Compile the image-compression example:
 
    cd statcoding
+
    javac -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
 
  - Run the image-compression example:
