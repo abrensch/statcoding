@@ -7,303 +7,323 @@ import java.io.InputStream;
 
 /**
  * BitInputStream is a replacement for java.io.DataInputStream extending it by
- * bitwise operations suitable for statistical decoding
+ * bitwise operations suitable for statistical decoding.
  *
  * It automatically re-aligns to byte-alignment as soon as any of the methods of
- * InputStream or DataOutput or its own method 'decodeVarBytes' is called
+ * InputStream or DataOutput or its own method 'decodeVarBytes' is called.
  * 
  * Please note that BitInputStream buffers up to 8 bytes from the underlying
  * stream, and it has a somewhat sloppy EOF detection, so it may not work as a
- * plugin-replacement for java.io.DataInputStream in all cases
+ * plugin-replacement for java.io.DataInputStream in all cases.
  */
 public final class BitInputStream extends InputStream implements DataInput {
 
-	private int bits; // bits left in buffer
-	private int eofBits; // dummy bits read after eof
-	private long b; // buffer word
+    private int bits; // bits left in buffer
+    private int eofBits; // dummy bits read after eof
+    private long b; // buffer word
 
-	private InputStream in;
-	private DataInputStream dis; // created lazily if needed
+    private InputStream in;
+    private DataInputStream dis; // created lazily if needed
 
-	public BitInputStream(InputStream is) {
-		in = is;
-	}
+    public BitInputStream(InputStream is) {
+        in = is;
+    }
 
-	private int readInternal() throws IOException {
-		return in.read();
-	}
+    private int readInternal() throws IOException {
+        return in.read();
+    }
 
-	@Override
-	public int read() throws IOException {
+    private void fillBuffer() throws IOException {
+        while (bits < 56) {
+            int nextByte = readInternal();
 
-		if (bits > 0) {
-			while ((bits & 7) > 0) { // any padding bits left?
-				if ((b & 1L) != 0L) {
-					throw new IOException("re-alignmet-failure: found non-zero padding bit");
-				}
-				b >>>= 1;
-				bits--;
-			}
-			if (bits > 7) { // can read byte from bit-buffer
-				long value = b & 0xffL;
-				b >>>= 8;
-				bits -= 8;
-				return (int) value;
-			}
-		}
-		return readInternal();
-	}
+            if (nextByte != -1) {
+                b |= (nextByte & 0xffL) << bits;
+            } else {
+                eofBits += 8;
+            }
+            bits += 8;
+        }
+        if (eofBits >= 256) {
+            throw new RuntimeException("end of stream !");
+        }
+    }
 
-	@Override
-	public int available() throws IOException {
-		return (bits >> 3) + in.available();
-	}
+    // ******************************************
+    // **** METHODS of java.util.InputStream ****
+    // ******************************************
 
-	// delegate Methods of DataInput to an instance of
-	// DataInputStream created lazily
-	private DataInputStream getDis() {
-		if (dis == null) {
-			dis = new DataInputStream(this);
-		}
-		return dis;
-	}
+    @Override
+    public int read() throws IOException {
 
-	@Override
-	public void readFully(byte b[]) throws IOException {
-		getDis().readFully(b);
-	}
+        if (bits > 0) {
+            while ((bits & 7) > 0) { // any padding bits left?
+                if ((b & 1L) != 0L) {
+                    throw new IOException("re-alignmet-failure: found non-zero padding bit");
+                }
+                b >>>= 1;
+                bits--;
+            }
+            if (bits > 7) { // can read byte from bit-buffer
+                long value = b & 0xffL;
+                b >>>= 8;
+                bits -= 8;
+                return (int) value;
+            }
+        }
+        return readInternal();
+    }
 
-	@Override
-	public void readFully(byte b[], int off, int len) throws IOException {
-		getDis().readFully(b, off, len);
-	}
+    @Override
+    public int available() throws IOException {
+        return (bits >> 3) + in.available();
+    }
 
-	@Override
-	public int skipBytes(int n) throws IOException {
-		return getDis().skipBytes(n);
-	}
+    // ****************************************
+    // **** METHODS of java.util.DataInput ****
+    // ****************************************
 
-	@Override
-	public boolean readBoolean() throws IOException {
-		return getDis().readBoolean();
-	}
+    // delegate Methods of DataInput to an instance of
+    // DataInputStream created lazily
+    private DataInputStream getDis() {
+        if (dis == null) {
+            dis = new DataInputStream(this);
+        }
+        return dis;
+    }
 
-	@Override
-	public byte readByte() throws IOException {
-		return getDis().readByte();
-	}
+    @Override
+    public void readFully(byte b[]) throws IOException {
+        getDis().readFully(b);
+    }
 
-	@Override
-	public int readUnsignedByte() throws IOException {
-		return getDis().readUnsignedByte();
-	}
+    @Override
+    public void readFully(byte b[], int off, int len) throws IOException {
+        getDis().readFully(b, off, len);
+    }
 
-	@Override
-	public short readShort() throws IOException {
-		return getDis().readShort();
-	}
+    @Override
+    public int skipBytes(int n) throws IOException {
+        return getDis().skipBytes(n);
+    }
 
-	@Override
-	public int readUnsignedShort() throws IOException {
-		return getDis().readUnsignedShort();
-	}
+    @Override
+    public boolean readBoolean() throws IOException {
+        return getDis().readBoolean();
+    }
 
-	@Override
-	public char readChar() throws IOException {
-		return getDis().readChar();
-	}
+    @Override
+    public byte readByte() throws IOException {
+        return getDis().readByte();
+    }
 
-	@Override
-	public int readInt() throws IOException {
-		return getDis().readInt();
-	}
+    @Override
+    public int readUnsignedByte() throws IOException {
+        return getDis().readUnsignedByte();
+    }
 
-	@Override
-	public long readLong() throws IOException {
-		return getDis().readLong();
-	}
+    @Override
+    public short readShort() throws IOException {
+        return getDis().readShort();
+    }
 
-	@Override
-	public float readFloat() throws IOException {
-		return getDis().readFloat();
-	}
+    @Override
+    public int readUnsignedShort() throws IOException {
+        return getDis().readUnsignedShort();
+    }
 
-	@Override
-	public double readDouble() throws IOException {
-		return getDis().readDouble();
-	}
+    @Override
+    public char readChar() throws IOException {
+        return getDis().readChar();
+    }
 
-	@Override
-	public String readLine() throws IOException {
-		return getDis().readLine();
-	}
+    @Override
+    public int readInt() throws IOException {
+        return getDis().readInt();
+    }
 
-	@Override
-	public String readUTF() throws IOException {
-		return getDis().readUTF();
-	}
+    @Override
+    public long readLong() throws IOException {
+        return getDis().readLong();
+    }
 
-	public final boolean decodeBit() throws IOException {
-		fillBuffer();
-		boolean value = ((b & 1L) != 0L);
-		b >>>= 1;
-		bits--;
-		return value;
-	}
+    @Override
+    public float readFloat() throws IOException {
+        return getDis().readFloat();
+    }
 
-	/**
-	 * @see #encodeVarBits
-	 */
-	public final long decodeUnsignedVarBits(int noisybits) throws IOException {
-		long noisyValue = decodeBits(noisybits);
-		long range = decodeRange();
-		return noisyValue | ((range + decodeBounded(range)) << noisybits);
-	}
+    @Override
+    public double readDouble() throws IOException {
+        return getDis().readDouble();
+    }
 
-	private long decodeRange() throws IOException {
-		long range = 0L;
-		while (!decodeBit()) {
-			if (range == -1L) {
-				throw new RuntimeException("range overflow");
-			}
-			range = (range << 1) | 1L;
-		}
-		return range;
-	}
+    @Override
+    public String readLine() throws IOException {
+        return getDis().readLine();
+    }
 
-	public final long decodeSignedVarBits(int noisybits) throws IOException {
-		boolean isNegative = decodeBit();
-		long lv = decodeUnsignedVarBits(noisybits);
-		return isNegative ? -lv - 1L : lv;
-	}
+    @Override
+    public String readUTF() throws IOException {
+        return getDis().readUTF();
+    }
 
-	private final long restoreSignBit(long value) {
-		return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
-	}
+    // ***********************************************
+    // **** Byte-aligned Variable Length Encoding ****
+    // ***********************************************
 
-	public final long decodeBits(int count) throws IOException {
-		if (count == 0) {
-			return 0L;
-		}
-		fillBuffer();
-		long mask = 0xffffffffffffffffL >>> (64 - count);
-		long value = b & mask;
-		b >>>= count;
-		bits -= count;
-		return value;
-	}
+    private final long restoreSignBit(long value) {
+        return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
+    }
 
-	/**
-	 * decode an integer in the range 0..max (inclusive).
-	 *
-	 * @see #encodeBounded
-	 */
-	public final long decodeBounded(long max) throws IOException {
-		long value = 0L;
-		long im = 1L; // integer mask
-		while (im > 0 && (value | im) <= max) {
-			if (decodeBit()) {
-				value |= im;
-			}
-			im <<= 1;
-		}
-		return value;
-	}
+    // ***************************************
+    // **** Bitwise Fixed Length Encoding ****
+    // ***************************************
 
-	/**
-	 * Decoding twin to {@link BitOutputStream#encodeUniqueSortedArray( long[] )}
-	 *
-	 * @return the decoded array of sorted, positive, unique longs
-	 */
-	public long[] decodeUniqueSortedArray() throws IOException {
-		int size = (int) decodeUnsignedVarBits(0);
-		long[] values = new long[size];
-		decodeUniqueSortedArray(values, 0, size, 0);
-		return values;
-	}
+    public final boolean decodeBit() throws IOException {
+        fillBuffer();
+        boolean value = ((b & 1L) != 0L);
+        b >>>= 1;
+        bits--;
+        return value;
+    }
 
-	/**
-	 * Decoding twin to
-	 * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, int )} <br>
-	 * See also {@link #decodeUniqueSortedArray()}
-	 *
-	 * @param values        the array to decode into
-	 * @param offset        position in this array where to start
-	 * @param size          number of values to decode
-	 * @param minLengthBits noisyBits used to encode bitlength of largest value
-	 */
-	public void decodeUniqueSortedArray(long[] values, int offset, int size, int minLengthBits) throws IOException {
-		if (size > 0) {
-			int nbits = (int) decodeUnsignedVarBits(minLengthBits);
-			decodeUniqueSortedArray(values, 0, size, nbits, 0L);
-		}
-	}
+    public final long decodeBits(int count) throws IOException {
+        if (count == 0) {
+            return 0L;
+        }
+        fillBuffer();
+        long mask = 0xffffffffffffffffL >>> (64 - count);
+        long value = b & mask;
+        b >>>= count;
+        bits -= count;
+        return value;
+    }
 
-	/**
-	 * Decoding twin to
-	 * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, long, long )}
-	 * <br>
-	 * (except that current bit is provided by postion, not bitmask) <br>
-	 * See also {@link #decodeUniqueSortedArray( long[], int, int, int )}
-	 *
-	 * @param values     the array to encode
-	 * @param offset     position in this array where to start
-	 * @param subsize    number of values to encode
-	 * @param nextbitpos bitposition of the most significant bit
-	 * @param value      should be 0 at recursion start
-	 */
-	protected void decodeUniqueSortedArray(long[] values, int offset, int subsize, int nextbitpos, long value)
-			throws IOException {
-		if (subsize == 1) // last-choice shortcut
-		{
-			while (nextbitpos >= 0) {
-				if (decodeBit()) {
-					value |= 1L << nextbitpos;
-				}
-				nextbitpos--;
-			}
-			values[offset] = value;
-			return;
-		}
-		if (nextbitpos < 0L) {
-			while (subsize-- > 0) {
-				values[offset++] = value;
-			}
-			return;
-		}
+    // ******************************************
+    // **** Bitwise Variable Length Encoding ****
+    // ******************************************
 
-		long nextbit = 1L << nextbitpos;
-		int size1;
-		if (subsize > nextbit) {
-			long max = nextbit;
-			long min = subsize - nextbit;
-			size1 = (int) (decodeBounded(max - min) + min);
-		} else {
-			size1 = (int) decodeBounded(subsize);
-		}
-		int size2 = subsize - size1;
+    /**
+     * @see #encodeVarBits
+     */
+    public final long decodeUnsignedVarBits(int noisybits) throws IOException {
+        long noisyValue = decodeBits(noisybits);
+        long range = decodeRange();
+        return noisyValue | ((range + decodeBounded(range)) << noisybits);
+    }
 
-		if (size1 > 0) {
-			decodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, value);
-		}
-		if (size2 > 0) {
-			decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | (1L << nextbitpos));
-		}
-	}
+    private long decodeRange() throws IOException {
+        long range = 0L;
+        while (!decodeBit()) {
+            if (range == -1L) {
+                throw new RuntimeException("range overflow");
+            }
+            range = (range << 1) | 1L;
+        }
+        return range;
+    }
 
-	private void fillBuffer() throws IOException {
-		while (bits < 56) {
-			int nextByte = readInternal();
+    public final long decodeSignedVarBits(int noisybits) throws IOException {
+        boolean isNegative = decodeBit();
+        long lv = decodeUnsignedVarBits(noisybits);
+        return isNegative ? -lv - 1L : lv;
+    }
 
-			if (nextByte != -1) {
-				b |= (nextByte & 0xffL) << bits;
-			} else {
-				eofBits += 8;
-			}
-			bits += 8;
-		}
-		if (eofBits >= 256) {
-			throw new RuntimeException("end of stream !");
-		}
-	}
+    /**
+     * decode an integer in the range 0..max (inclusive).
+     *
+     * @see #encodeBounded
+     */
+    public final long decodeBounded(long max) throws IOException {
+        long value = 0L;
+        long im = 1L; // integer mask
+        while (im > 0 && (value | im) <= max) {
+            if (decodeBit()) {
+                value |= im;
+            }
+            im <<= 1;
+        }
+        return value;
+    }
+
+    /**
+     * Decoding twin to {@link BitOutputStream#encodeUniqueSortedArray( long[] )}
+     *
+     * @return the decoded array of sorted, positive, unique longs
+     */
+    public long[] decodeUniqueSortedArray() throws IOException {
+        int size = (int) decodeUnsignedVarBits(0);
+        long[] values = new long[size];
+        decodeUniqueSortedArray(values, 0, size, 0);
+        return values;
+    }
+
+    /**
+     * Decoding twin to
+     * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, int )} <br>
+     * See also {@link #decodeUniqueSortedArray()}
+     *
+     * @param values        the array to decode into
+     * @param offset        position in this array where to start
+     * @param size          number of values to decode
+     * @param minLengthBits noisyBits used to encode bitlength of largest value
+     */
+    public void decodeUniqueSortedArray(long[] values, int offset, int size, int minLengthBits) throws IOException {
+        if (size > 0) {
+            int nbits = (int) decodeUnsignedVarBits(minLengthBits);
+            decodeUniqueSortedArray(values, 0, size, nbits, 0L);
+        }
+    }
+
+    /**
+     * Decoding twin to
+     * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, long, long )}
+     * <br>
+     * (except that current bit is provided by postion, not bitmask) <br>
+     * See also {@link #decodeUniqueSortedArray( long[], int, int, int )}
+     *
+     * @param values     the array to encode
+     * @param offset     position in this array where to start
+     * @param subsize    number of values to encode
+     * @param nextbitpos bitposition of the most significant bit
+     * @param value      should be 0 at recursion start
+     */
+    protected void decodeUniqueSortedArray(long[] values, int offset, int subsize, int nextbitpos, long value)
+            throws IOException {
+        if (subsize == 1) // last-choice shortcut
+        {
+            while (nextbitpos >= 0) {
+                if (decodeBit()) {
+                    value |= 1L << nextbitpos;
+                }
+                nextbitpos--;
+            }
+            values[offset] = value;
+            return;
+        }
+        if (nextbitpos < 0L) {
+            while (subsize-- > 0) {
+                values[offset++] = value;
+            }
+            return;
+        }
+
+        long nextbit = 1L << nextbitpos;
+        int size1;
+        if (subsize > nextbit) {
+            long max = nextbit;
+            long min = subsize - nextbit;
+            size1 = (int) (decodeBounded(max - min) + min);
+        } else {
+            size1 = (int) decodeBounded(subsize);
+        }
+        int size2 = subsize - size1;
+
+        if (size1 > 0) {
+            decodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, value);
+        }
+        if (size2 > 0) {
+            decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | (1L << nextbitpos));
+        }
+    }
 }
