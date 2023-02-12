@@ -34,7 +34,7 @@ public final class BitInputStream extends InputStream implements DataInput {
     }
 
     private void fillBuffer() throws IOException {
-        while (bits < 56) {
+        while (bits <= 56) {
             int nextByte = readInternal();
 
             if (nextByte != -1) {
@@ -208,6 +208,9 @@ public final class BitInputStream extends InputStream implements DataInput {
         }
         fillBuffer();
         long mask = 0xffffffffffffffffL >>> (64 - count);
+        if ( count > bits ) {
+          return decodeBounded( mask ); // buffer too small, slow fallback
+        }
         long value = b & mask;
         b >>>= count;
         bits -= count;
@@ -223,19 +226,16 @@ public final class BitInputStream extends InputStream implements DataInput {
      */
     public final long decodeUnsignedVarBits(int noisybits) throws IOException {
         long noisyValue = decodeBits(noisybits);
-        long range = decodeRange();
-        return noisyValue | ((range + decodeBounded(range)) << noisybits);
-    }
-
-    private long decodeRange() throws IOException {
         long range = 0L;
+        int bits = 0;
         while (!decodeBit()) {
             if (range == -1L) {
                 throw new RuntimeException("range overflow");
             }
             range = (range << 1) | 1L;
+            bits++;
         }
-        return range;
+        return noisyValue | ((range + decodeBits(bits)) << noisybits);
     }
 
     public final long decodeSignedVarBits(int noisybits) throws IOException {

@@ -216,7 +216,17 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * @param value the value from whom to encode the lower nbits bits
      */
     public final void encodeBits(int nbits, long value) throws IOException {
-        for (int i = 0; i < nbits; i++) {
+        if (nbits > 0 && bits + nbits <= 64) {
+            flushBuffer();
+            long mask = 0xffffffffffffffffL >>> (64 - nbits);
+            b |= (value & mask) << bits;
+            bits += nbits;
+            return;
+        }
+        if (nbits < 0 || nbits > 64) {
+            throw new IllegalArgumentException("encodeBits: nbits out of rangs (0..64): " + nbits);
+        }
+        for (int i = 0; i < nbits; i++) { // buffer too small, slow fallback
             encodeBit((value & (1L << i)) != 0L);
         }
     }
