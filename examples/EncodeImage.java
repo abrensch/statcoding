@@ -27,60 +27,60 @@ import javax.imageio.ImageIO;
  */
 public class EncodeImage {
 
-	private void processImage(File fileIn, File fileOut) throws Exception {
+    private void processImage(File fileIn, File fileOut) throws Exception {
 
-		// read image and convert to a standard ARGB representation
-		BufferedImage inputImage = ImageIO.read(fileIn);
-		BufferedImage argbImage = new BufferedImage(inputImage.getWidth(), inputImage.getHeight(),
-				BufferedImage.TYPE_INT_ARGB);
-		Graphics g = argbImage.createGraphics();
-		g.drawImage(inputImage, 0, 0, null);
-		g.dispose();
-		int w = argbImage.getWidth();
-		int h = argbImage.getHeight();
-		int n = w * h;
-		int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
+        // read image and convert to a standard ARGB representation
+        BufferedImage inputImage = ImageIO.read(fileIn);
+        BufferedImage argbImage = new BufferedImage(inputImage.getWidth(), inputImage.getHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics g = argbImage.createGraphics();
+        g.drawImage(inputImage, 0, 0, null);
+        g.dispose();
+        int w = argbImage.getWidth();
+        int h = argbImage.getHeight();
+        int n = w * h;
+        int[] data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
-		// extract the color palette and sort by ARGB value
-		SortedSet<Long> colorSet = new TreeSet<>();
-		for (int i = 0; i < n; i++) {
-			Long col = Long.valueOf(data[i] & 0xffffffffL);
-			colorSet.add(col);
-		}
-		SortedMap<Long, Long> colorMap = new TreeMap<>();
-		long[] colorArray = new long[colorSet.size()];
-		for (Long col : colorSet) {
-			int idx = colorMap.size();
-			colorArray[idx] = col.longValue();
-			colorMap.put(col, Long.valueOf(idx));
-		}
-		colorSet = null;
+        // extract the color palette and sort by ARGB value
+        SortedSet<Long> colorSet = new TreeSet<>();
+        for (int i = 0; i < n; i++) {
+            Long col = Long.valueOf(data[i] & 0xffffffffL);
+            colorSet.add(col);
+        }
+        SortedMap<Long, Long> colorMap = new TreeMap<>();
+        long[] colorArray = new long[colorSet.size()];
+        for (Long col : colorSet) {
+            int idx = colorMap.size();
+            colorArray[idx] = col.longValue();
+            colorMap.put(col, Long.valueOf(idx));
+        }
+        colorSet = null;
 
-		try (BitOutputStream bos = new BitOutputStream(new FileOutputStream(fileOut))) {
+        try (BitOutputStream bos = new BitOutputStream(new FileOutputStream(fileOut))) {
 
-			// encode the image dimensions
-			bos.encodeUnsignedVarBits(w, 9);
-			bos.encodeUnsignedVarBits(h, 9);
+            // encode the image dimensions
+            bos.encodeUnsignedVarBits(w, 9);
+            bos.encodeUnsignedVarBits(h, 9);
 
-			// encode the color palette
-			bos.encodeUniqueSortedArray(colorArray);
+            // encode the color palette
+            bos.encodeUniqueSortedArray(colorArray);
 
-			// encode the series of color index values using RlA2Encoder
-			// (=2nd order arithmetic encoding + runlengh-escape)
-			// using 2-pass encoding (pass1: collect stats, pass2: encode)
-			RlA2Encoder encoder = new RlA2Encoder(colorArray.length - 1, 8);
-			for (int pass = 1; pass <= 2; pass++) {
-				encoder.init(bos);
-				for (int i = 0; i < n; i++) {
-					Long col = Long.valueOf(data[i] & 0xffffffffL);
-					encoder.encodeValue(colorMap.get(col));
-				}
-				encoder.finish();
-			}
-		}
-	}
+            // encode the series of color index values using RlA2Encoder
+            // (=2nd order arithmetic encoding + runlengh-escape)
+            // using 2-pass encoding (pass1: collect stats, pass2: encode)
+            RlA2Encoder encoder = new RlA2Encoder(colorArray.length - 1, 8);
+            for (int pass = 1; pass <= 2; pass++) {
+                encoder.init(bos);
+                for (int i = 0; i < n; i++) {
+                    Long col = Long.valueOf(data[i] & 0xffffffffL);
+                    encoder.encodeValue(colorMap.get(col));
+                }
+                encoder.finish();
+            }
+        }
+    }
 
-	public static void main(String args[]) throws Exception {
-		new EncodeImage().processImage( new File( args[0] ), new File (args[1] ) );
-	}
+    public static void main(String args[]) throws Exception {
+        new EncodeImage().processImage(new File(args[0]), new File(args[1]));
+    }
 }
