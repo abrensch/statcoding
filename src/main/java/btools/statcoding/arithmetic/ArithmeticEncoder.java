@@ -6,11 +6,15 @@ import java.util.Objects;
 import btools.statcoding.BitOutputStream;
 
 /**
- * Encodes symbols and writes to an arithmetic-coded bit stream. Not
- * thread-safe.
+ * Encodes symbols and writes to an arithmetic-coded bit stream.
  *
  * This code is mostly taken from:
  * https://github.com/nayuki/Reference-arithmetic-coding
+ *
+ * Please not that this needs exclusive access to the underlying BitOutputStream
+ * after the first symbol is encoded. Underlying BitOutputStream should be
+ * closed when the arithmetic stream is finished, cause re-aligning the
+ * bitstream is not tested.
  *
  * @see ArithmeticDecoder
  */

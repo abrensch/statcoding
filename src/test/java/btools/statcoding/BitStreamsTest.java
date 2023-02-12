@@ -37,6 +37,31 @@ public class BitStreamsTest extends TestCase {
         }
     }
 
+    public void testVarBytes() throws IOException {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try (BitOutputStream bos = new BitOutputStream(baos)) {
+            for (long l : testLongs) {
+                bos.encodeVarBytes(l);
+            }
+            bos.encodeVarBytes(Long.MIN_VALUE);
+            // test re-alignment
+            bos.encodeSignedVarBits(1523L, 3);
+            bos.encodeVarBytes(4711L);
+        }
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        try (BitInputStream bis = new BitInputStream(bais)) {
+
+            for (long l : testLongs) {
+                assertEquals(bis.decodeVarBytes(), l);
+            }
+            assertEquals(bis.decodeVarBytes(), Long.MIN_VALUE);
+            assertEquals(bis.decodeSignedVarBits(3), 1523L);
+            assertEquals(bis.decodeVarBytes(), 4711L);
+        }
+    }
+
     public void testReAlignment() throws IOException {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

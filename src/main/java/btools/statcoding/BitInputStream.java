@@ -171,6 +171,21 @@ public final class BitInputStream extends InputStream implements DataInput {
     // **** Byte-aligned Variable Length Encoding ****
     // ***********************************************
 
+    public final long decodeVarBytes() throws IOException {
+        long v = 0L;
+        for (int shift = 0; shift < 64; shift += 7) {
+            int nextByte = read();
+            if (nextByte == -1) {
+                throw new IOException("unexpected EOF in decodeVarBytes");
+            }
+            v |= (nextByte & 0x7fL) << shift;
+            if ((nextByte & 0x80) == 0) {
+                break;
+            }
+        }
+        return restoreSignBit(v);
+    }
+
     private final long restoreSignBit(long value) {
         return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
     }
