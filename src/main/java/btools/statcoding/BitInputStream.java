@@ -294,7 +294,6 @@ public final class BitInputStream extends InputStream implements DataInput {
      * Decoding twin to
      * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, long, long )}
      * <br>
-     * (except that current bit is provided by postion, not bitmask) <br>
      * See also {@link #decodeUniqueSortedArray( long[], int, int, int )}
      *
      * @param values     the array to encode
@@ -307,13 +306,9 @@ public final class BitInputStream extends InputStream implements DataInput {
             throws IOException {
         if (subsize == 1) // last-choice shortcut
         {
-            while (nextbitpos >= 0) {
-                if (decodeBit()) {
-                    value |= 1L << nextbitpos;
-                }
-                nextbitpos--;
-            }
-            values[offset] = value;
+            // ugly here: inverse bit-order then without the last-choice shortcut
+            // but we do it that way for performance
+            values[offset] = value | decodeBits( nextbitpos + 1 );
             return;
         }
         if (nextbitpos < 0L) {
@@ -338,7 +333,7 @@ public final class BitInputStream extends InputStream implements DataInput {
             decodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, value);
         }
         if (size2 > 0) {
-            decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | (1L << nextbitpos));
+            decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | nextbit );
         }
     }
 }

@@ -315,8 +315,21 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
             while ((max >>>= 1) != 0L) {
                 nbits++;
             }
+            checkUniqueSortedArray( values, offset, size );
             encodeUnsignedVarBits(nbits, minLengthBits);
-            encodeUniqueSortedArray(values, offset, size, 1L << nbits, 0L);
+            encodeUniqueSortedArray(values, offset, size, nbits, 0L);
+        }
+    }
+
+    private void checkUniqueSortedArray(long[] values, int offset, int size) {
+        long lv = -1L;
+        int end = offset + size;
+        for (int i = offset; i < end; i++) {
+            long v = values[i];
+            if ( lv >= v ) {
+                throw new IllegalArgumentException( "checkUniqueSortedArray: not positive-sorted-unique at " + i );
+            }
+            lv = v;
         }
     }
 
@@ -329,28 +342,29 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * @param values  the array to encode
      * @param offset  position in this array where to start
      * @param subsize number of values to encode
-     * @param nextbit bitmask with the most significant bit set to 1
+     * @param nextbitpos bitposition of the most significant bit
      * @param mask    should be 0 at recursion start
      */
-    protected void encodeUniqueSortedArray(long[] values, int offset, int subsize, long nextbit, long mask)
+    protected void encodeUniqueSortedArray(long[] values, int offset, int subsize, int nextbitpos, long mask)
             throws IOException {
         if (subsize == 1) // last-choice shortcut
         {
-            while (nextbit != 0L) {
-                encodeBit((values[offset] & nextbit) != 0L);
-                nextbit >>>= 1;
-            }
+            // ugly here: inverse bit-order then without the last-choice shortcut
+            // but we do it that way for performance
+            encodeBits( nextbitpos + 1, values[offset] );
+            return;
         }
-        if (nextbit == 0L) {
+        if (nextbitpos < 0L) {
             return;
         }
 
+        long nextbit = 1L << nextbitpos;
         long data = mask & values[offset];
         mask |= nextbit;
 
         // count 0-bit-fraction
         int i = offset;
-        int end = subsize + offset;
+        int end = offset + subsize;
         for (; i < end; i++) {
             if ((values[i] & mask) != data) {
                 break;
@@ -367,10 +381,10 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
             encodeBounded(subsize, size1);
         }
         if (size1 > 0) {
-            encodeUniqueSortedArray(values, offset, size1, nextbit >>> 1, mask);
+            encodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, mask);
         }
         if (size2 > 0) {
-            encodeUniqueSortedArray(values, i, size2, nextbit >>> 1, mask);
+            encodeUniqueSortedArray(values, i, size2, nextbitpos - 1, mask);
         }
     }
 }
