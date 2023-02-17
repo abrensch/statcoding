@@ -168,7 +168,7 @@ public final class BitInputStream extends InputStream implements DataInput {
     }
 
     // ***********************************************
-    // **** Byte-aligned Variable Length Encoding ****
+    // **** Byte-aligned Variable Length Decoding ****
     // ***********************************************
 
     public final long decodeVarBytes() throws IOException {
@@ -208,8 +208,8 @@ public final class BitInputStream extends InputStream implements DataInput {
         }
         fillBuffer();
         long mask = 0xffffffffffffffffL >>> (64 - count);
-        if ( count > bits ) {
-          return decodeBounded( mask ); // buffer too small, slow fallback
+        if (count > bits) {
+            return decodeBounded(mask); // buffer too small, slow fallback
         }
         long value = b & mask;
         b >>>= count;
@@ -218,7 +218,7 @@ public final class BitInputStream extends InputStream implements DataInput {
     }
 
     // ******************************************
-    // **** Bitwise Variable Length Encoding ****
+    // **** Bitwise Variable Length Decoding ****
     // ******************************************
 
     /**
@@ -308,7 +308,7 @@ public final class BitInputStream extends InputStream implements DataInput {
         {
             // ugly here: inverse bit-order then without the last-choice shortcut
             // but we do it that way for performance
-            values[offset] = value | decodeBits( nextbitpos + 1 );
+            values[offset] = value | decodeBits(nextbitpos + 1);
             return;
         }
         if (nextbitpos < 0L) {
@@ -333,7 +333,30 @@ public final class BitInputStream extends InputStream implements DataInput {
             decodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, value);
         }
         if (size2 > 0) {
-            decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | nextbit );
+            decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | nextbit);
         }
+    }
+
+    /**
+     * Decode some bits according to the given lengthArray (which is expected to be
+     * 2^n in size, with n <= 32)
+     *
+     * This is very special logic for speeding up huffman decoding based on a lookup
+     * table.
+     *
+     * But could be used for speeding up other var-length codes as well.
+     *
+     * @param lengthArray an array telling how much bits to consume for the observed
+     *                    bit-pattern
+     *
+     * @return an index to the lookup array
+     */
+    public final int decodeLookupIndex(int[] lengthArray) throws IOException {
+        fillBuffer();
+        int v = (int) (b & (lengthArray.length - 1));
+        int count = lengthArray[v];
+        b >>>= count;
+        bits -= count;
+        return v;
     }
 }
