@@ -25,10 +25,8 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * Construct a BitOutputStream for the underlying OutputStream.
      *
      * Please note that BitOutputStream needs exclusive access to the underlying
-     * OutputStream.because it is buffering bits that could otherwise come out of
+     * OutputStream because it is buffering bits that could otherwise come out of
      * order.
-     *
-     * @param value the bit to encode
      */
     public BitOutputStream(OutputStream os) {
         out = os;
@@ -71,14 +69,22 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
         return bytesWritten * 8L + bits;
     }
 
-    // *******************************************
-    // **** METHODS of java.util.OutputStream ****
-    // *******************************************
+    // *****************************************
+    // **** METHODS of java.io.OutputStream ****
+    // *****************************************
 
     @Override
     public void write(int b) throws IOException {
         flushBufferAndReAlign();
-        writeInternal(b);
+        out.write(b);
+        bytesWritten++;
+    }
+
+    @Override
+    public void write(byte b[], int off, int len) throws IOException {
+        flushBufferAndReAlign();
+        out.write(b, off, len);
+        bytesWritten += len;
     }
 
     /**
@@ -101,9 +107,9 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
         out.close();
     }
 
-    // *****************************************
-    // **** METHODS of java.util.DataOutput ****
-    // *****************************************
+    // ***************************************
+    // **** METHODS of java.io.DataOutput ****
+    // ***************************************
 
     // delegate Methods of DataOutput to an instance of
     // DataOutputStream created lazily

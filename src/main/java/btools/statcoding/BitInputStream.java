@@ -29,13 +29,9 @@ public final class BitInputStream extends InputStream implements DataInput {
         in = is;
     }
 
-    private int readInternal() throws IOException {
-        return in.read();
-    }
-
     private void fillBuffer() throws IOException {
         while (bits <= 56) {
-            int nextByte = readInternal();
+            int nextByte = in.read();
 
             if (nextByte != -1) {
                 b |= (nextByte & 0xffL) << bits;
@@ -49,21 +45,15 @@ public final class BitInputStream extends InputStream implements DataInput {
         }
     }
 
-    // ******************************************
-    // **** METHODS of java.util.InputStream ****
-    // ******************************************
+    // ****************************************
+    // **** METHODS of java.io.InputStream ****
+    // ****************************************
 
     @Override
     public int read() throws IOException {
 
         if (bits > 0) {
-            while ((bits & 7) > 0) { // any padding bits left?
-                if ((b & 1L) != 0L) {
-                    throw new IOException("re-alignmet-failure: found non-zero padding bit");
-                }
-                b >>>= 1;
-                bits--;
-            }
+            reAlign();
             if (bits > 7) { // can read byte from bit-buffer
                 long value = b & 0xffL;
                 b >>>= 8;
@@ -71,7 +61,39 @@ public final class BitInputStream extends InputStream implements DataInput {
                 return (int) value;
             }
         }
-        return readInternal();
+        return in.read();
+    }
+
+    private void reAlign() throws IOException {
+        while ((bits & 7) > 0) { // any padding bits left?
+            if ((b & 1L) != 0L) {
+                throw new IOException("re-alignmet-failure: found non-zero padding bit");
+            }
+            b >>>= 1;
+            bits--;
+        }
+    }
+
+    @Override
+    public int read(byte b[], int off, int len) throws IOException {
+        reAlign();
+        if (len == 0) {
+            return 0;
+        }
+        int lenFromBuffer = 0;
+        while (bits > 0 && len > 0) {
+            b[off++] = (byte) read();
+            len--;
+            lenFromBuffer++;
+        }
+        if (lenFromBuffer > 0) {
+            if (len == 0 || available() == 0) {
+                return lenFromBuffer;
+            }
+            int result = in.read(b, off, len);
+            return result == -1 ? lenFromBuffer : lenFromBuffer + result;
+        }
+        return in.read(b, off, len);
     }
 
     @Override
@@ -79,9 +101,9 @@ public final class BitInputStream extends InputStream implements DataInput {
         return (bits >> 3) + in.available();
     }
 
-    // ****************************************
-    // **** METHODS of java.util.DataInput ****
-    // ****************************************
+    // **************************************
+    // **** METHODS of java.io.DataInput ****
+    // **************************************
 
     // delegate Methods of DataInput to an instance of
     // DataInputStream created lazily
