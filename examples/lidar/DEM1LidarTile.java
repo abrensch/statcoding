@@ -5,6 +5,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.StringTokenizer;
 
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
+import btools.statcoding.huffman.HuffmanEncoder;
 import btools.statcoding.huffman.HuffmanDecoder;
 import btools.statcoding.huffman.HuffmanEncoder;
 
