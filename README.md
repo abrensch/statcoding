@@ -24,15 +24,15 @@ Examples
 
  - Compile the image-compression example:
 
-   cd examples
+   cd examples/images
 
-   javac -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
+   javac -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
 
- - Run the image-compression example:
+ - Run the image-compression example (with a test.png of your choice):
 
-   java -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. EncodeImage test.png test.bin
+   java -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. EncodeImage test.png test.bin
 
-   java -cp ../target/statcoding-0.0.1-SNAPSHOT.jar;. DecodeImage test.bin test2.png
+   java -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. DecodeImage test.bin test2.png
 
 
 Release History
