@@ -70,9 +70,14 @@ public abstract class HuffmanDecoder {
         boolean isNode = bis.decodeBit();
         int step = bits <= lookupBits ? 1 << bits : 0;
         if (isNode) {
+            Object child1 = decodeTree(offset, bits + 1);
+            Object child2 = decodeTree(offset + step, bits + 1);
+            if (bits < lookupBits) {
+                return null;
+            }
             TreeNode node = new TreeNode();
-            node.child1 = decodeTree(offset, bits + 1);
-            node.child2 = decodeTree(offset + step, bits + 1);
+            node.child1 = child1;
+            node.child2 = child2;
             if (bits == lookupBits) {
                 subtrees[offset] = node;
                 lengths[offset] = bits;
