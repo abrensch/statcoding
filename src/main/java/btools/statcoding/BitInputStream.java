@@ -45,6 +45,23 @@ public final class BitInputStream extends InputStream implements DataInput {
         }
     }
 
+    /**
+     * This actually just calls readLong(), but is a method on it's for
+     * documentation: if the underlying input stream is still used by other
+     * consumers after this BitInputStream is discarded or paused, we need to make
+     * sure that it's internal 64-bit buffer is empty. Any block of >=8 bytes of
+     * byte-aligned data will do, just make sure that the encoder and the decoder
+     * agree on a common structure. <br>
+     * <br>
+     *
+     * See also {@link BitOutputStream#writeSyncBlock( long )} <br>
+     *
+     * @return the sync block as a long value
+     */
+    public long readSyncBlock() throws IOException {
+        return readLong();
+    }
+
     // ****************************************
     // **** METHODS of java.io.InputStream ****
     // ****************************************

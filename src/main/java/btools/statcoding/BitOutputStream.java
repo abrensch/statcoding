@@ -59,6 +59,22 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
     }
 
     /**
+     * This actually just calls writeLong(), but is a method on it's for
+     * documentation: if the underlying output stream is still used by other writers
+     * after this BitOutputStream is discarded or paused, we need to make sure that
+     * it's internal 64-bit buffer is empty. Any block of >=8 bytes of byte-aligned
+     * data will do, just make sure that the encoder and the decoder agree on a
+     * common structure. <br>
+     *
+     * See also {@link BitInputStream#readSyncBlock()} <br>
+     *
+     * @param the long value to write as a sync block
+     */
+    public void writeSyncBlock(long value) throws IOException {
+        writeLong(value);
+    }
+
+    /**
      * Get the number of bits written so far.
      *
      * This includes padding bits from re-alignment.
@@ -321,7 +337,7 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
             while ((max >>>= 1) != 0L) {
                 nbits++;
             }
-            checkUniqueSortedArray( values, offset, size );
+            checkUniqueSortedArray(values, offset, size);
             encodeUnsignedVarBits(nbits, minLengthBits);
             encodeUniqueSortedArray(values, offset, size, nbits, 0L);
         }
@@ -332,8 +348,8 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
         int end = offset + size;
         for (int i = offset; i < end; i++) {
             long v = values[i];
-            if ( lv >= v ) {
-                throw new IllegalArgumentException( "checkUniqueSortedArray: not positive-sorted-unique at " + i );
+            if (lv >= v) {
+                throw new IllegalArgumentException("checkUniqueSortedArray: not positive-sorted-unique at " + i);
             }
             lv = v;
         }
@@ -345,11 +361,11 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * calls itself recursively down to subsize=1, where a fast shortcut kicks in to
      * encode the remaining bits of that remaining value-
      *
-     * @param values  the array to encode
-     * @param offset  position in this array where to start
-     * @param subsize number of values to encode
+     * @param values     the array to encode
+     * @param offset     position in this array where to start
+     * @param subsize    number of values to encode
      * @param nextbitpos bitposition of the most significant bit
-     * @param mask    should be 0 at recursion start
+     * @param mask       should be 0 at recursion start
      */
     protected void encodeUniqueSortedArray(long[] values, int offset, int subsize, int nextbitpos, long mask)
             throws IOException {
@@ -357,7 +373,7 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
         {
             // ugly here: inverse bit-order then without the last-choice shortcut
             // but we do it that way for performance
-            encodeBits( nextbitpos + 1, values[offset] );
+            encodeBits(nextbitpos + 1, values[offset]);
             return;
         }
         if (nextbitpos < 0L) {
