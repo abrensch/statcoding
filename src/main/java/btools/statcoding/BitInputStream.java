@@ -386,11 +386,12 @@ public final class BitInputStream extends InputStream implements DataInput {
             values[offset] = value | decodeBits(nextbitpos + 1);
             return;
         }
-        if (nextbitpos < 0L) {
-            while (subsize-- > 0) {
-                values[offset++] = value;
-            }
-            return;
+        if (nextbitpos < 0L) { // cannot happen for unique, keep code for later
+            // while (subsize-- > 0) {
+            // values[offset++] = value;
+            // }
+            // return;
+            throw new RuntimeException("unique violation");
         }
 
         long nextbit = 1L << nextbitpos;

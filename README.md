@@ -22,17 +22,9 @@ Usage
 Examples
 --------
 
- - Compile the image-compression example:
+ -  Example Lidar data processing:  [`examples/lidar/README.md`](examples/lidar/README.md).
 
-   cd examples/images
-
-   javac -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
-
- - Run the image-compression example (with a test.png of your choice):
-
-   java -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. EncodeImage test.png test.bin
-
-   java -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. DecodeImage test.bin test2.png
+ -  Example simple image encoding:  [`examples/images/README.md`](examples/images/README.md).
 
 
 Release History
