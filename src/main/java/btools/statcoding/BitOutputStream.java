@@ -65,7 +65,7 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * it's internal 64-bit buffer is empty. Any block of >=8 bytes of byte-aligned
      * data will do, just make sure that the encoder and the decoder agree on a
      * common structure. <br>
-     *
+     * <br>
      * See also {@link BitInputStream#readSyncBlock()} <br>
      *
      * @param the long value to write as a sync block
@@ -195,6 +195,23 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
     // **** Byte-aligned Variable Length Encoding ****
     // ***********************************************
 
+    /**
+     * Byte aligned variable length encoding of (signed) numbers. This encodes in
+     * packages of 7 bits with the 8th bit being the stop-bit.<br>
+     * <br>
+     *
+     * The sign bit is put in front so that also negative numbers are encoded
+     * effectively. Therefore the number range that is encoded in a single byte is
+     * [-64..63]<br>
+     * <br>
+     *
+     * No unsigned flavor of this method is provided. When hunting for space please
+     * consider using bitwise encoding.
+     *
+     * @param the long value to encode
+     *
+     * @see BitInputStream#decodeVarBytes
+     */
     public final void encodeVarBytes(long value) throws IOException {
         flushBufferAndReAlign();
         long v = moveSignBit(value);
@@ -235,7 +252,7 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * Encode a given number of bits.
      *
      * @param nbits the number of bit to encode
-     * @param value the value from whom to encode the lower nbits bits
+     * @param value the value from whom to encode the lower {@code nbits} bits
      */
     public final void encodeBits(int nbits, long value) throws IOException {
         if (nbits > 0 && bits + nbits <= 64) {
@@ -257,6 +274,24 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
     // **** Bitwise Variable Length Encoding ****
     // ******************************************
 
+    /**
+     * Bitwise variable length encoding of a non-negative number. The lower
+     * {@code noisybits} bits are encoded directly (see
+     * {@link #encodeBits( int, long )}) and for the remaining value the following
+     * mapping is used:<br>
+     * <br>
+     *
+     * {@code 1 -> 0}<br>
+     * {@code 01 -> 1} + following 1-bit word ( 1..2 )<br>
+     * {@code 001 -> 3} + following 2-bit word ( 3..6 )<br>
+     * {@code 0001 -> 7} + following 3-bit word ( 7..14 )<br>
+     * etc.
+     *
+     * @param value     the (non negative) number to encode
+     * @param noisybits the number of lower bits considered noisy
+     *
+     * @see BitInputStream#decodeUnsignedVarBits(int)
+     */
     public final void encodeUnsignedVarBits(long value, int noisybits) throws IOException {
         if (value < 0) {
             throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative values: " + value);
@@ -277,19 +312,36 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
         encodeBits(nbits, value);
     }
 
+    /**
+     * Similar to {@link #encodeUnsignedVarBits(long,int)} but allowing for negative
+     * numbers by prepending a sign bit.
+     *
+     * @param value     the number to encode
+     * @param noisybits the number of lower bits considered noisy
+     *
+     * @see BitInputStream#decodeSignedVarBits(int)
+     */
     public final void encodeSignedVarBits(long value, int noisybits) throws IOException {
         encodeBit(value < 0L);
         encodeUnsignedVarBits(value < 0L ? -value - 1L : value, noisybits);
     }
 
     /**
-     * encode a long in the range 0..max (inclusive). For max = 2^n-1, this just
+     * Encode a long in the range 0..max (inclusive). For max = 2^n-1, this just
      * encodes n bits, but in general this is variable length encoding, with the
      * shorter codes for the central value range
+     *
+     * @param max   value is expected in the range [0..max]
+     * @param value the value to encode
+     *
+     * @see BitInputStream#decodeBounded(long)
      */
     public final void encodeBounded(long max, long value) throws IOException {
         if (max < 0L || value < 0) {
             throw new IllegalArgumentException("encodeBounded expects positive values");
+        }
+        if (value > max) {
+            throw new IllegalArgumentException("value out of range");
         }
         long im = 1L; // integer mask
         while (im > 0 && im <= max) {
@@ -304,7 +356,7 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
     }
 
     /**
-     * encode a positive long-array making use of the fact that it is sorted and
+     * Encode a positive long-array making use of the fact that it is sorted and
      * unique. This is done, starting with the most significant bit, by recursively
      * encoding the number of values with the current bit being 0. This yields an
      * number of bits per value that only depends on the typical distance between
@@ -313,6 +365,8 @@ public final class BitOutputStream extends OutputStream implements DataOutput {
      * one over the whole array.
      *
      * @param values the array to encode
+     *
+     * @see BitInputStream#encodeUniqueSortedArray()
      */
     public void encodeUniqueSortedArray(long[] values) throws IOException {
         int size = values.length;

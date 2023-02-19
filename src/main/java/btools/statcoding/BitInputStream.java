@@ -12,9 +12,10 @@ import java.io.InputStream;
  * It automatically re-aligns to byte-alignment as soon as any of the methods of
  * InputStream or DataOutput or its own method 'decodeVarBytes' is called.
  * 
- * Please note that BitInputStream buffers up to 8 bytes from the underlying
- * stream, and it has a somewhat sloppy EOF detection, so it may not work as a
- * plugin-replacement for java.io.DataInputStream in all cases.
+ * Please note that while doing bitwise operations, BitInputStream buffers up to
+ * 8 bytes from the underlying stream and has a somewhat sloppy EOF detection,
+ * so please do fully re-align (see {@link BitOutputStream#readSyncBlock()}
+ * after bitwise operations for compliant EOF behavior.
  */
 public final class BitInputStream extends InputStream implements DataInput {
 
@@ -53,7 +54,6 @@ public final class BitInputStream extends InputStream implements DataInput {
      * byte-aligned data will do, just make sure that the encoder and the decoder
      * agree on a common structure. <br>
      * <br>
-     *
      * See also {@link BitOutputStream#writeSyncBlock( long )} <br>
      *
      * @return the sync block as a long value
@@ -210,6 +210,11 @@ public final class BitInputStream extends InputStream implements DataInput {
     // **** Byte-aligned Variable Length Decoding ****
     // ***********************************************
 
+    /**
+     * Decoding twin to {@link BitOutputStream#encodeVarBytes( long )}
+     *
+     * @return the decoded long value
+     */
     public final long decodeVarBytes() throws IOException {
         long v = 0L;
         for (int shift = 0; shift < 64; shift += 7) {
@@ -233,6 +238,11 @@ public final class BitInputStream extends InputStream implements DataInput {
     // **** Bitwise Fixed Length Encoding ****
     // ***************************************
 
+    /**
+     * Decode a single bit.
+     *
+     * @return true/false for 1/0
+     */
     public final boolean decodeBit() throws IOException {
         fillBuffer();
         boolean value = ((b & 1L) != 0L);
@@ -241,6 +251,12 @@ public final class BitInputStream extends InputStream implements DataInput {
         return value;
     }
 
+    /**
+     * Decode a given number of bits.
+     *
+     * @param nbits the number of bit to decode
+     * @return the decoded value
+     */
     public final long decodeBits(int count) throws IOException {
         if (count == 0) {
             return 0L;
@@ -261,7 +277,14 @@ public final class BitInputStream extends InputStream implements DataInput {
     // ******************************************
 
     /**
-     * @see #encodeVarBits
+     * Decoding twin to
+     * {@link BitOutputStream#encodeUnsignedVarBits( long, int )}<br>
+     * <br>
+     *
+     * Please note that {@code noisybits} must match the value used for encoding.
+     *
+     * @param noisybits the number of lower bits considered noisy
+     * @return the decoded value
      */
     public final long decodeUnsignedVarBits(int noisybits) throws IOException {
         long noisyValue = decodeBits(noisybits);
@@ -277,6 +300,15 @@ public final class BitInputStream extends InputStream implements DataInput {
         return noisyValue | ((range + decodeBits(bits)) << noisybits);
     }
 
+    /**
+     * Decoding twin to {@link BitOutputStream#encodeSignedVarBits( long, int )}<br>
+     * <br>
+     *
+     * Please note that {@code noisybits} must match the value used for encoding.
+     *
+     * @param noisybits the number of lower bits considered noisy
+     * @return the decoded value
+     */
     public final long decodeSignedVarBits(int noisybits) throws IOException {
         boolean isNegative = decodeBit();
         long lv = decodeUnsignedVarBits(noisybits);
@@ -284,9 +316,13 @@ public final class BitInputStream extends InputStream implements DataInput {
     }
 
     /**
-     * decode an integer in the range 0..max (inclusive).
+     * Decoding twin to {@link BitOutputStream#encodeBounded( long, long )}<br>
+     * <br>
      *
-     * @see #encodeBounded
+     * Please note that {@code max} must match the value used for encoding.
+     *
+     * @param max the number of lower bits considered noisy
+     * @return the decoded value
      */
     public final long decodeBounded(long max) throws IOException {
         long value = 0L;
