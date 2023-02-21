@@ -29,7 +29,6 @@ public class RlA2Encoder {
     public void init(BitOutputStream bos) throws IOException {
         if (++pass == 2) {
             bos.encodeUnsignedVarBits(maxValue, 0);
-            bos.encodeUnsignedVarBits(minRunLength, 0);
             aEncoder = new ArithmeticEncoder(bos);
         }
         for (ACContextEncoder encoder: encoders) {
