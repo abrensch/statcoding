@@ -45,7 +45,7 @@ public final class ACContextEncoder {
                 idx2symbol[idx] = iSymbol;
                 idx++;
             }
-            ArithmeticCoderBase.createStatsFromFrequencies(stats);
+            encoder.createStatsFromFrequencies(stats);
             BitOutputStream bos = encoder.getOutputStream();
 
             // encode statistics

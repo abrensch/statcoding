@@ -39,19 +39,10 @@ public abstract class ArithmeticCoderBase {
     protected final int numStateBits;
 
     /**
-     * Maximum range (high+1-low) during coding (trivial), which is 2^numStateBits =
-     * 1000...000.
+     * Maximum range (high+1-low) during coding (trivial), which is 2^numStateBits
+     * and half and quarter of that
      */
-    protected final long fullRange;
-
-    /** The top bit at width numStateBits, which is 0100...000. */
-    protected final long halfRange;
-
-    /**
-     * The second-highest bit at width numStateBits, which is 0010...000. This is
-     * zero when numStateBits=1.
-     */
-    protected final long quarterRange;
+    protected final long fullRange, halfRange, quarterRange;
 
     /**
      * Minimum range (high+1-low) during coding (non-trivial), which is 0010...010.
@@ -136,10 +127,8 @@ public abstract class ArithmeticCoderBase {
             throw new IllegalArgumentException("Cannot code symbol because total is too large");
 
         // Update range
-        long newLow = low + symLow * range / total;
-        long newHigh = low + symHigh * range / total - 1;
-        low = newLow;
-        high = newHigh;
+        high = low + symHigh * range / total - 1;
+        low = low + symLow * range / total;
 
         // While low and high have the same top bit value, shift them out
         while (((low ^ high) & halfRange) == 0) {
@@ -158,13 +147,29 @@ public abstract class ArithmeticCoderBase {
         }
     }
 
-    public static void createStatsFromFrequencies(long[] values) {
+    public void createStatsFromFrequencies(long[] values) {
+        scaleDownFrequencies(values);
         long sum = 0L;
         for (int i = 0; i < values.length; i++) {
             sum += values[i];
             values[i] = sum;
         }
-        // TODO: scale down if > maximumTotal
+    }
+
+    private void scaleDownFrequencies(long[] values) {
+        for(;;) {
+            // just count
+            long total = 0L;
+            for (long v : values) {
+                total += v;
+            }
+            if ( total <= maximumTotal ) {
+                return;
+            }
+            for (int i = 0; i < values.length; i++) {
+                values[i] = (values[i]+1) >>> 1;
+            }
+         }
     }
 
     /**

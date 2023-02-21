@@ -9,7 +9,7 @@ import junit.framework.TestCase;
 
 public class RlH2CodingTest extends TestCase {
 
-    private static long[] testLongs = new long[] { 0L, 0L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 3L, 17L };
+    private static final long[] testLongs = new long[] { 0L, 0L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 3L, 17L };
 
     public void testRlH2Coding() throws IOException {
 

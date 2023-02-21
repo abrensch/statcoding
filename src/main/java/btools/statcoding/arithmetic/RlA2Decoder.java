@@ -21,7 +21,6 @@ public class RlA2Decoder {
             decoders[i] = new ACContextDecoder();
             decoders[i].init(aDecoder);
         }
-
         repCount = 0;
         lastValue = 0L;
     }

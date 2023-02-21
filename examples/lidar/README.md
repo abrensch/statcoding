@@ -5,8 +5,7 @@ This example shows how the statcoding libraray can help handling big datasets
 by encoding them into a working format which is compact and can be decoded very fast.
 
 It handles digital elevation data from laser measurements which is available
-for public download for most countries with 1m horizontal resolution and
-30cm elevation accuracy.
+for public download for most countries with 1m horizontal and 1cm vertical resolution.
 
 The data tiles are transformed to a proprietary format which is
 5 times smaller and decodes 20 times faster compared to the downloadable
@@ -16,17 +15,17 @@ formats. That allows much more efficient processing of such data.
 Example Usage
 -------------
 
- - Setup (Windows):
+ - Setup:
 
-   cd examples\lidar
+```
+     Windows:
+       cd examples\lidar
+       set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
 
-   set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
-
- - Setup (Linux):
-
-   cd examples/lidar
-
-   export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
+     Linux:
+       cd examples/lidar
+       export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
+``` 
 
  - Compile:
 

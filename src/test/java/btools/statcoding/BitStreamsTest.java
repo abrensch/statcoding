@@ -7,7 +7,7 @@ import junit.framework.TestCase;
 
 public class BitStreamsTest extends TestCase {
 
-    private static long[] testLongs = new long[] { 0L, 1L, 63738377475675L, Long.MAX_VALUE };
+    private static final long[] testLongs = new long[] { 0L, 1L, 63738377475675L, Long.MAX_VALUE };
 
     public void testBitStreams() throws IOException {
 
@@ -27,7 +27,7 @@ public class BitStreamsTest extends TestCase {
         try (BitInputStream bis = new BitInputStream(bais)) {
 
             assertTrue(bis.decodeBit());
-            assertTrue(!bis.decodeBit());
+            assertFalse(bis.decodeBit());
             for (long l : testLongs) {
                 assertEquals(bis.decodeUnsignedVarBits(0), l);
                 assertEquals(bis.decodeSignedVarBits(0), l);

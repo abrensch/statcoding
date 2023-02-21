@@ -25,10 +25,9 @@ public class ArithmeticCodingTest extends TestCase {
             freqs[nextSymbol]++;
         }
 
-        ArithmeticCoderBase.createStatsFromFrequencies(freqs);
-
         try (BitOutputStream bos = new BitOutputStream(baos)) {
             ArithmeticEncoder enc = new ArithmeticEncoder(bos);
+            enc.createStatsFromFrequencies(freqs);
             rnd = new Random(123); // fixed seed
             for (int i = 0; i < nsymbols; i++) {
                 int nextSymbol = rnd.nextInt(symbolRange);

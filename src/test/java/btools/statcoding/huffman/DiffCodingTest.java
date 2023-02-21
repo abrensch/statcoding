@@ -9,7 +9,7 @@ import junit.framework.TestCase;
 
 public class DiffCodingTest extends TestCase {
 
-    private static long[] testLongs = new long[] { 0L, 1L, 63738377475675L, Long.MAX_VALUE };
+    private static final long[] testLongs = new long[] { 0L, 1L, 63738377475675L, Long.MAX_VALUE };
 
     public void testDiffCoding() throws IOException {
 

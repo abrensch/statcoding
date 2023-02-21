@@ -29,7 +29,7 @@ public abstract class HuffmanEncoder {
             if (tn == null) {
                 throw new IllegalArgumentException("symbol was not seen in pass 1: " + obj);
             }
-            bos.encodeBounded(tn.range - 1, tn.code);
+            bos.encodeBits(tn.bits, tn.code);
         } else {
             if (tn == null) {
                 tn = new TreeNode(nextTagValueSetId++);
@@ -58,19 +58,19 @@ public abstract class HuffmanEncoder {
                     queue.add(node);
                 }
                 TreeNode root = queue.poll();
-                encodeTree(root, 1, 0);
+                encodeTree(root, 0, 0);
             }
         }
     }
 
-    public void encodeTree(TreeNode node, long range, long code) throws IOException {
-        node.range = range;
+    public void encodeTree(TreeNode node, int bits, long code) throws IOException {
+        node.bits = bits;
         node.code = code;
         boolean isNode = node.child1 != null;
         bos.encodeBit(isNode);
         if (isNode) {
-            encodeTree(node.child1, range << 1, code);
-            encodeTree(node.child2, range << 1, code + range);
+            encodeTree(node.child1, bits+1, code);
+            encodeTree(node.child2, bits+1, code + (1L<<bits) );
         } else {
             encodeObjectToStream(node.obj);
         }
@@ -84,14 +84,8 @@ public abstract class HuffmanEncoder {
         long totFreq = 0L;
         int distinct = 0;
         for (TreeNode tn : symbols.values()) {
-            long r = tn.range;
-            int nBits = 0;
-            while (r > 1L) {
-                nBits++;
-                r >>>= 1;
-            }
             totFreq += tn.frequency;
-            bits += tn.frequency * nBits;
+            bits += tn.frequency * tn.bits;
             entropy += Math.log(tn.frequency) * tn.frequency;
             distinct++;
         }
@@ -101,7 +95,8 @@ public abstract class HuffmanEncoder {
 
     private static final class TreeNode {
         Object obj;
-        long frequency, code, range;
+        int bits;
+        long frequency, code;
         TreeNode child1, child2;
         long id; // serial id to make the comparator well-defined for equal frequencies
 

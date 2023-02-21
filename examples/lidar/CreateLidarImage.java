@@ -18,11 +18,16 @@ public class CreateLidarImage {
 
     private void decodeTile(File fileIn, int offset, int rowSize, int downscale) throws Exception {
 
+        // decode the tile
         long t0 = System.currentTimeMillis();
         DEM1LidarTile tile = new DEM1LidarTile();
         try (InputStream is = new BufferedInputStream(new FileInputStream(fileIn))) {
             tile.readCompact(is);
         }
+        long t1 = System.currentTimeMillis();
+        System.out.println("decoding " + fileIn + " took " + (t1 - t0) + " ms");
+
+        // copy/scale the data into the image array
         int[] tileData = tile.getData();
         for (int y = 0; y < 1000; y++) {
             for (int x = 0; x < 1000; x++) {
@@ -30,20 +35,10 @@ public class CreateLidarImage {
                 data[offset + (x / downscale) - (y / downscale) * rowSize] = value;
             }
         }
-        long t1 = System.currentTimeMillis();
-        System.out.println("decoding " + fileIn + " took " + (t1 - t0) + " ms");
     }
 
-    private void createImage(String[] args) throws Exception {
-        String dataType = args[0];
-        String imageName = args[1];
-        int minXkm = Integer.parseInt(args[2]);
-        int minYkm = Integer.parseInt(args[3]);
-        int maxXkm = Integer.parseInt(args[4]);
-        int maxYkm = Integer.parseInt(args[5]);
-        int downscale = Integer.parseInt(args[6]);
+    private void createImage(String dataType, String imageName, int minXkm, int minYkm, int maxXkm, int maxYkm, int downscale) throws Exception {
         int tileSize = 1000 / downscale;
-
         int sizeX = (maxXkm - minXkm) * tileSize;
         int sizeY = (maxYkm - minYkm) * tileSize;
 
@@ -63,9 +58,8 @@ public class CreateLidarImage {
                 int xKm = tile.getXBaseKm();
                 int yKm = tile.getYBaseKm();
                 if (xKm >= minXkm && xKm < maxXkm && yKm >= minYkm && yKm < maxYkm) {
-
-                    decodeTile(f, (xKm - minXkm) * tileSize + ((maxYkm - yKm) * tileSize - 1) * sizeX, sizeX,
-                            downscale);
+                	  int offset = (xKm - minXkm) * tileSize + ((maxYkm - yKm) * tileSize - 1) * sizeX;
+                    decodeTile(f, offset, sizeX, downscale);
                 }
             }
         }
@@ -93,6 +87,7 @@ public class CreateLidarImage {
             System.out.println("\nwhere: dataType = [dgm1|dom1] downscale = [1|2|4|..]");
             return;
         }
-        new CreateLidarImage().createImage(args);
+        new CreateLidarImage().createImage(args[0], args[1], Integer.parseInt(args[2]),
+                Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]) );
     }
 }

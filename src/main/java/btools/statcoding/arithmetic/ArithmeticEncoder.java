@@ -22,17 +22,13 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
     // The underlying bit output stream (not null).
     private final BitOutputStream output;
 
-    // Number of saved underflow bits. This value can grow without bound,
-    // so a truly correct implementation would use a BigInteger.
-    private int numUnderflow;
+    // Number of saved underflow bits.
+    private long numUnderflow;
 
     /**
-     * Constructs an arithmetic coding encoder based on the specified bit output
-     * stream.
+     * Constructs an arithmetic encoder based on the specified bit stream.
      * 
      * @param out     the bit output stream to write to
-     * @throws NullPointerException     if the output stream is {@code null}
-     * @throws IllegalArgumentException if stateSize is outside the range [1, 62]
      */
     public ArithmeticEncoder(BitOutputStream out) {
         output = out;
@@ -46,7 +42,7 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
      * Encodes the specified symbol based on the specified frequency table. Also
      * updates this arithmetic coder's state and may write out some bits.
      * 
-     * @param stats  the frequency table to use
+     * @param stats  the (integrated) frequency table to use
      * @param symbol the symbol to encode
      * @throws IllegalArgumentException if the symbol has zero frequency or the
      *                                  frequency table's total is too large
@@ -81,8 +77,6 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
     }
 
     protected void underflow() {
-        if (numUnderflow == Integer.MAX_VALUE)
-            throw new ArithmeticException("Maximum underflow reached");
         numUnderflow++;
     }
 
