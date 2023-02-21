@@ -12,11 +12,13 @@ Usage
  - Setup (Windows):
 
    cd examples\images
+
    set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
 
  - Setup (Linux):
 
    cd examples/images
+
    export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
 
  - Compile:

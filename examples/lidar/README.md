@@ -19,11 +19,13 @@ Example Usage
  - Setup (Windows):
 
    cd examples\lidar
+
    set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
 
  - Setup (Linux):
 
    cd examples/lidar
+
    export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
 
  - Compile:
