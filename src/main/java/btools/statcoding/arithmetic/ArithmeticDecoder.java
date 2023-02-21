@@ -5,9 +5,8 @@ import java.io.IOException;
 import btools.statcoding.BitInputStream;
 
 /**
- * Reads from an arithmetic-coded bit stream and decodes symbols. Not
- * thread-safe.
- *
+ * Reads from an arithmetic-coded bit stream and decodes symbols.
+ * <br><br>
  * This code is mostly taken from:
  * https://github.com/nayuki/Reference-arithmetic-coding
  *
@@ -16,7 +15,7 @@ import btools.statcoding.BitInputStream;
 public final class ArithmeticDecoder extends ArithmeticCoderBase {
 
     // The underlying bit input stream
-    private BitInputStream input;
+    private final BitInputStream input;
 
     // The current raw code bits being buffered, which is always in the range [low,
     // high].
@@ -28,11 +27,9 @@ public final class ArithmeticDecoder extends ArithmeticCoderBase {
      * Constructs an arithmetic coding decoder based on the specified bit input
      * stream, and fills the code bits.
      * 
-     * @param numBits the number of bits for the arithmetic coding range
      * @param in      the bit input stream to read from
-     * @throws IOException if an I/O exception occurred
      */
-    public ArithmeticDecoder(BitInputStream in) throws IOException {
+    public ArithmeticDecoder(BitInputStream in) {
         input = in;
     }
 
@@ -44,7 +41,7 @@ public final class ArithmeticDecoder extends ArithmeticCoderBase {
      * Decodes the next symbol based on the specified frequency table and returns
      * it. Also updates this arithmetic coder's state and may read in some bits.
      * 
-     * @param freqs the frequency table to use
+     * @param stats the (integrated) frequency table to use
      * @return the next symbol
      * @throws IllegalArgumentException if the frequency table's total is too large
      * @throws IOException              if an I/O exception occurred
@@ -71,8 +68,7 @@ public final class ArithmeticDecoder extends ArithmeticCoderBase {
         if (!(0 <= value && value < total))
             throw new AssertionError();
 
-        // A kind of binary search. Find highest symbol such that freqs.getLow(symbol)
-        // <= value.
+        // A kind of binary search. Find last symbol with stats[symbol-1] <= value.
         int start = 0;
         int end = stats.length;
         while (end - start > 1) {

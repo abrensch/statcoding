@@ -1,17 +1,16 @@
 package btools.statcoding.arithmetic;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import btools.statcoding.BitOutputStream;
 
 /**
  * Encodes symbols and writes to an arithmetic-coded bit stream.
- *
+ * <br><br>
  * This code is mostly taken from:
  * https://github.com/nayuki/Reference-arithmetic-coding
- *
- * Please not that this needs exclusive access to the underlying BitOutputStream
+ * <br><br>
+ * Please note that this needs exclusive access to the underlying BitOutputStream
  * after the first symbol is encoded. Underlying BitOutputStream should be
  * closed when the arithmetic stream is finished, cause re-aligning the
  * bitstream is not tested.
@@ -21,7 +20,7 @@ import btools.statcoding.BitOutputStream;
 public final class ArithmeticEncoder extends ArithmeticCoderBase {
 
     // The underlying bit output stream (not null).
-    private BitOutputStream output;
+    private final BitOutputStream output;
 
     // Number of saved underflow bits. This value can grow without bound,
     // so a truly correct implementation would use a BigInteger.
@@ -31,7 +30,6 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
      * Constructs an arithmetic coding encoder based on the specified bit output
      * stream.
      * 
-     * @param numBits the number of bits for the arithmetic coding range
      * @param out     the bit output stream to write to
      * @throws NullPointerException     if the output stream is {@code null}
      * @throws IllegalArgumentException if stateSize is outside the range [1, 62]
@@ -61,7 +59,7 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
     /**
      * Terminates the arithmetic coding by flushing any buffered bits, so that the
      * output can be decoded properly. It is important that this method must be
-     * called at the end of the each encoding process.
+     * called at the end of each encoding process.
      * <p>
      * Note that this method merely writes data to the underlying output stream but
      * does not close it.

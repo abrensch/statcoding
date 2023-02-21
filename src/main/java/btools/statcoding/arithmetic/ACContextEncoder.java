@@ -8,13 +8,13 @@ import btools.statcoding.BitOutputStream;
 /**
  * Encoder for arithmetic encoding that manages the statistics and offers an
  * interface for 2-pass encoding.
- *
+ * <br><br>
  * It uses an additional indirection to re-map the symbols to encode to the
  * smaller set of symbols that are actually observed.
- *
+ * <br><br>
  * The actual arithmetic coder that encodes the (re-mapped) symbols to the
  * bitstream must be provided and can be shared over multiple-instance of
- * ACContextEncoder
+ * ACContextEncoder.
  *
  * @see ACContextDecoder
  */
@@ -23,7 +23,7 @@ public final class ACContextEncoder {
     // The underlying encoder
     private ArithmeticEncoder encoder;
 
-    private TreeMap<Integer, long[]> freqs = new TreeMap<>();
+    private final TreeMap<Integer, long[]> frequencies = new TreeMap<>();
 
     private long[] stats;
     private int pass;
@@ -34,15 +34,15 @@ public final class ACContextEncoder {
 
         if (++pass == 2) {
             // prepare frequency table
-            int size = freqs.size();
+            int size = frequencies.size();
             stats = new long[size];
             long[] idx2symbol = new long[size];
             int idx = 0;
-            for (Integer iSymbol : freqs.keySet()) {
-                long[] freq = freqs.get(iSymbol);
+            for (Integer iSymbol : frequencies.keySet()) {
+                long[] freq = frequencies.get(iSymbol);
                 stats[idx] = freq[0];
                 freq[1] = idx;
-                idx2symbol[idx] = iSymbol.intValue();
+                idx2symbol[idx] = iSymbol;
                 idx++;
             }
             ArithmeticCoderBase.createStatsFromFrequencies(stats);
@@ -58,18 +58,16 @@ public final class ACContextEncoder {
     }
 
     public void write(int symbol) throws IOException {
-        Integer iSymbol = Integer.valueOf(symbol);
+        long[] current = frequencies.get(symbol);
         if (pass < 2) {
-            long[] current = freqs.get(iSymbol);
             if (current == null) {
                 current = new long[2]; // [frequency, index]
-                freqs.put(iSymbol, current);
+                frequencies.put(symbol, current);
             }
             current[0]++;
         } else {
-            long[] current = freqs.get(iSymbol);
             if (current == null) {
-                throw new IllegalArgumentException("symbol " + symbol + " is unkown from pass1");
+                throw new IllegalArgumentException("symbol " + symbol + " is unknown from pass1");
             }
             encoder.write(stats, (int) current[1]);
         }

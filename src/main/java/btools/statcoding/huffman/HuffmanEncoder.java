@@ -8,18 +8,18 @@ import java.util.PriorityQueue;
 import btools.statcoding.BitOutputStream;
 
 /**
- * Encoder for huffman-encoding objects
- * <p>
+ * Encoder for huffman-encoding objects.
+ * <br><br>
  * It detects identical objects and sorts them into a huffman-tree according to
- * their frequencies
- * <p>
- * Adapted for 2-pass encoding (statistics -&gt; encoding )
+ * their frequencies.
+ * <br><br>
+ * Adapted for 2-pass encoding (pass 1: statistic collection, pass 2: encoding).
  */
 public abstract class HuffmanEncoder {
 
     protected BitOutputStream bos;
 
-    private HashMap<Object, TreeNode> symbols = new HashMap<Object, TreeNode>();
+    private final HashMap<Object, TreeNode> symbols = new HashMap<>();
     private int pass;
     private long nextTagValueSetId;
 
@@ -47,7 +47,7 @@ public abstract class HuffmanEncoder {
             boolean hasSymbols = !symbols.isEmpty();
             bos.encodeBit(hasSymbols);
             if (hasSymbols) {
-                PriorityQueue<TreeNode> queue = new PriorityQueue<TreeNode>(2 * symbols.size(),
+                PriorityQueue<TreeNode> queue = new PriorityQueue<>(2 * symbols.size(),
                         new TreeNode.FrequencyComparator());
                 queue.addAll(symbols.values());
                 while (queue.size() > 1) {
@@ -81,30 +81,29 @@ public abstract class HuffmanEncoder {
     public String getStats() {
         double entropy = 0.;
         long bits = 0L;
-        long totfreq = 0L;
+        long totFreq = 0L;
         int distinct = 0;
         for (TreeNode tn : symbols.values()) {
             long r = tn.range;
-            int nbits = 0;
+            int nBits = 0;
             while (r > 1L) {
-                nbits++;
+                nBits++;
                 r >>>= 1;
             }
-            totfreq += tn.frequency;
-            bits += tn.frequency * nbits;
+            totFreq += tn.frequency;
+            bits += tn.frequency * nBits;
             entropy += Math.log(tn.frequency) * tn.frequency;
             distinct++;
         }
-        entropy = (Math.log(totfreq) * totfreq - entropy) / Math.log(2);
-        return "symbols=" + totfreq + " distinct=" + distinct + " bits=" + bits; // + " entropy=" + entropy;
+        entropy = (Math.log(totFreq) * totFreq - entropy) / Math.log(2);
+        return "symbols=" + totFreq + " distinct=" + distinct + " bits=" + bits + " entropy=" + entropy;
     }
 
     private static final class TreeNode {
         Object obj;
         long frequency, code, range;
         TreeNode child1, child2;
-        long id; // serial number to make the comparator well defined in case of equal
-                 // frequencies
+        long id; // serial id to make the comparator well-defined for equal frequencies
 
         public TreeNode(long id) {
             this.id = id;
@@ -114,17 +113,9 @@ public abstract class HuffmanEncoder {
 
             @Override
             public int compare(TreeNode tn1, TreeNode tn2) {
-                if (tn1.frequency < tn2.frequency)
-                    return -1;
-                if (tn1.frequency > tn2.frequency)
-                    return 1;
-
                 // to avoid ordering instability, decide on the id if frequency is equal
-                if (tn1.id < tn2.id)
-                    return -1;
-                if (tn1.id > tn2.id)
-                    return 1;
-                return 0;
+                int result = Long.compare( tn1.frequency, tn2.frequency );
+                return result != 0 ? result : Long.compare( tn1.id, tn2.id );
             }
         }
 

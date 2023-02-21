@@ -9,14 +9,22 @@ It's not of any particular use, just a demo of how to use the library and how co
 Usage
 -----
 
- - Compile the image-compression example:
+ - Setup (Windows):
+
+   cd examples\images
+   set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
+
+ - Setup (Linux):
 
    cd examples/images
+   export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
 
-   javac -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
+ - Compile:
+
+   javac *.java
 
  - Run the image-compression example (with a test.png of your choice):
 
-   java -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. EncodeImage test.png test.bin
+   java EncodeImage test.png test.bin
 
-   java -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. DecodeImage test.bin test2.png
+   java DecodeImage test.bin test2.png

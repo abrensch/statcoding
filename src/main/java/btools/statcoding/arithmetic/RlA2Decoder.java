@@ -6,17 +6,15 @@ import btools.statcoding.BitInputStream;
 
 public class RlA2Decoder {
 
-    private long maxValue;
-    private long minRunlength;
     private long lastValue;
     private long repCount;
     private ACContextDecoder[] decoders;
     private ArithmeticDecoder aDecoder;
-    private long rleEscape = 0L;
+    private static final long rleEscape = 0L;
 
     public void init(BitInputStream bis) throws IOException {
-        maxValue = bis.decodeUnsignedVarBits(0);
-        minRunlength = bis.decodeUnsignedVarBits(0);
+        long maxValue = bis.decodeUnsignedVarBits(0);
+        long minRunLength = bis.decodeUnsignedVarBits(0);
         int n = (int) (maxValue) + 2;
         aDecoder = new ArithmeticDecoder(bis);
         decoders = new ACContextDecoder[n];

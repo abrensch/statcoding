@@ -9,19 +9,20 @@ import java.util.zip.ZipInputStream;
 
 /**
  * Look for ZIPs with Lidar data in the current directory and recode them for
- * faster access
+ * faster access.
  */
 public class RecodeLidarData {
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
 
-        File[] files = new File(".").listFiles();
         File dataDir = new File("data");
-        dataDir.mkdir();
+        if ( !dataDir.isDirectory() && !dataDir.mkdir() ) {
+            throw new IllegalArgumentException( "cannot create data-dir: " + dataDir );
+        }
+        File[] files = new File(".").listFiles();
         for (File f : files) {
             if (f.getName().endsWith(".zip")) {
-                ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(f.getName())));
-                try {
+                try ( ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(f.getName()))) ) {
                     for (;;) {
                         ZipEntry ze = zis.getNextEntry();
                         if (ze == null) {
@@ -40,8 +41,6 @@ public class RecodeLidarData {
                             }
                         }
                     }
-                } finally {
-                    zis.close();
                 }
             }
         }

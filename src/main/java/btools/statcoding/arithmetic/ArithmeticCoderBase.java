@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * Provides the state and behaviors that arithmetic coding encoders and decoders
  * share.
- * 
+ * <br><br>
  * This code is mostly taken from:
  * https://github.com/nayuki/Reference-arithmetic-coding
  *
@@ -48,7 +48,7 @@ public abstract class ArithmeticCoderBase {
     protected final long halfRange;
 
     /**
-     * The second highest bit at width numStateBits, which is 0010...000. This is
+     * The second-highest bit at width numStateBits, which is 0010...000. This is
      * zero when numStateBits=1.
      */
     protected final long quarterRange;
@@ -113,7 +113,7 @@ public abstract class ArithmeticCoderBase {
      * intermediate calculations don't overflow.</li>
      * </ul>
      * 
-     * @param freqs  the frequency table to use
+     * @param stats  the (integrated) frequency table to use
      * @param symbol the symbol that was processed
      * @throws IllegalArgumentException if the symbol has zero frequency or the
      *                                  frequency table's total is too large
@@ -149,7 +149,7 @@ public abstract class ArithmeticCoderBase {
         }
         // Now low's top bit must be 0 and high's top bit must be 1
 
-        // While low's top two bits are 01 and high's are 10, delete the second highest
+        // While low's top two bits are 01 and high's are 10, delete the second-highest
         // bit of both
         while ((low & ~high & quarterRange) != 0) {
             underflow();

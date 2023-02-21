@@ -9,16 +9,15 @@ import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 import btools.statcoding.huffman.HuffmanEncoder;
 import btools.statcoding.huffman.HuffmanDecoder;
-import btools.statcoding.huffman.HuffmanEncoder;
 
 /**
  * Container for a 1 Square-KM Raster Tile of 1m Resolution Lidar Data, can be
- * DOM1 (Digitales Oberflaechen Modell) or DGM1 (Digitales Gelaende Modell)
- *
+ * DOM1 ("Digitales Oberflaechen Modell") or DGM1 ("Digitales Gelaende Modell")
+ * <br><br>
  * Coordinate System is UTM (Universal Transverse Mercator)
- *
- * NODATA pixels are treated as 0-elevation for simplicty
- * (don't know if NODATA is used in DEM1 data)
+ * <br><br>
+ * NO-DATA pixels are treated as 0-elevation for simplicity
+ * (don't know if NO-DATA is used in DEM1 data)
  */
 public class DEM1LidarTile {
 
@@ -101,23 +100,23 @@ public class DEM1LidarTile {
             String x = tk.nextToken();
             String y = tk.nextToken();
             String z = tk.nextToken();
-            int xval = (int) (Double.parseDouble(x) + 0.5) - 1000 * xBaseKm;
-            int yval = (int) (Double.parseDouble(y) + 0.5) - 1000 * yBaseKm;
-            int zval = (int) (Double.parseDouble(z) * 100 + 0.5);
-            if (xval < 0 || xval >= 1000 || yval < 0 || yval >= 1000) {
+            int xVal = (int) (Double.parseDouble(x) + 0.5) - 1000 * xBaseKm;
+            int yVal = (int) (Double.parseDouble(y) + 0.5) - 1000 * yBaseKm;
+            int zVal = (int) (Double.parseDouble(z) * 100 + 0.5);
+            if (xVal < 0 || xVal >= 1000 || yVal < 0 || yVal >= 1000) {
                 throw new IllegalArgumentException("coordinates out of bound: " + line);
             }
-            data[xval + yval * 1000] = zval;
+            data[xVal + yVal * 1000] = zVal;
         }
     }
 
     /**
-     * Write this tile to an outputstream in a compact format<br>
-     * <br>
+     * Write this tile to a stream in a compact format.
+     * <br><br>
      * It uses huffman encoding with fixed statistics on the elevation-diffs.
      *
      * @param outStream the stream to write to (expected to be buffered)
-     * @see #writeCompact(InputStream)
+     * @see #readCompact(InputStream)
      */
     public void writeCompact(OutputStream outStream) throws IOException {
 
@@ -128,29 +127,26 @@ public class DEM1LidarTile {
         bos.encodeVarBytes(yBaseKm);
         bos.encodeVarBytes(resolution);
 
-        LongEncoder encoder = new LongEncoder();
+        HuffmanEncoder encoder = new HuffmanEncoder() {
+            @Override
+            protected void encodeObjectToStream(Object obj) throws IOException {
+                bos.encodeSignedVarBits( (Long)obj, 8);
+            }
+        };
         for (int pass = 1; pass <= 2; pass++) {
             encoder.init(bos);
             long lastValue = 0L;
             for (int i = 0; i < 1000000; i++) {
                 long value = data[i];
-                encoder.encodeObject(Long.valueOf(value - lastValue));
+                encoder.encodeObject( value - lastValue );
                 lastValue = value;
             }
         }
         bos.writeSyncBlock(0L);
     }
 
-    private static class LongEncoder extends HuffmanEncoder {
-        @Override
-        protected void encodeObjectToStream(Object obj) throws IOException {
-            long lv = ((Long) obj).longValue();
-            bos.encodeSignedVarBits(lv, 8);
-        }
-    }
-
     /**
-     * Fill this tile to an inputstream in a compact format<br>
+     * Fill this tile from a compact format input stream.
      *
      * @param inStream the stream to read from (expected to be buffered)
      * @see #writeCompact(OutputStream)
@@ -164,25 +160,21 @@ public class DEM1LidarTile {
         yBaseKm = (int) bis.decodeVarBytes();
         resolution = (int) bis.decodeVarBytes();
 
-        LongDecoder decoder = new LongDecoder();
+        HuffmanDecoder decoder = new HuffmanDecoder() {
+            @Override
+            protected Object decodeObjectFromStream() throws IOException {
+                return bis.decodeSignedVarBits(8);
+            }
+        };
         decoder.init(bis, 12);
         data = new int[1000000];
         long value = 0L;
         for (int i = 0; i < 1000000; i++) {
-            value += ((Long) decoder.decodeObject()).longValue();
+            value += (Long) decoder.decodeObject();
             data[i] = (int) value;
         }
         if (bis.readSyncBlock() != 0L) {
             throw new IllegalArgumentException("0-sync not found!");
         }
     }
-
-    private static class LongDecoder extends HuffmanDecoder {
-        @Override
-        protected Object decodeObjectFromStream() throws IOException {
-            long lv = bis.decodeSignedVarBits(8);
-            return Long.valueOf(lv);
-        }
-    }
-
 }

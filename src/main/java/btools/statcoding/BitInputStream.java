@@ -8,22 +8,22 @@ import java.io.InputStream;
 /**
  * BitInputStream is a replacement for java.io.DataInputStream extending it by
  * bitwise operations suitable for statistical decoding.
- *
+ * <br>
  * It automatically re-aligns to byte-alignment as soon as any of the methods of
  * InputStream or DataOutput or its own method 'decodeVarBytes' is called.
- * 
+ * <br>
  * Please note that while doing bitwise operations, BitInputStream buffers up to
  * 8 bytes from the underlying stream and has a somewhat sloppy EOF detection,
- * so please do fully re-align (see {@link BitOutputStream#readSyncBlock()}
+ * so please do fully re-align (see {@link BitOutputStream#writeSyncBlock(long)})
  * after bitwise operations for compliant EOF behavior.
  */
-public final class BitInputStream extends InputStream implements DataInput {
+public class BitInputStream extends InputStream implements DataInput {
 
     private int bits; // bits left in buffer
     private int eofBits; // dummy bits read after eof
     private long b; // buffer word
 
-    private InputStream in;
+    private final InputStream in;
     private DataInputStream dis; // created lazily if needed
 
     public BitInputStream(InputStream is) {
@@ -84,7 +84,7 @@ public final class BitInputStream extends InputStream implements DataInput {
     private void reAlign() throws IOException {
         while ((bits & 7) > 0) { // any padding bits left?
             if ((b & 1L) != 0L) {
-                throw new IOException("re-alignmet-failure: found non-zero padding bit");
+                throw new IOException("re-alignment-failure: found non-zero padding bit");
             }
             b >>>= 1;
             bits--;
@@ -92,7 +92,7 @@ public final class BitInputStream extends InputStream implements DataInput {
     }
 
     @Override
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws IOException {
         reAlign();
         if (len == 0) {
             return 0;
@@ -132,12 +132,12 @@ public final class BitInputStream extends InputStream implements DataInput {
     }
 
     @Override
-    public void readFully(byte b[]) throws IOException {
+    public void readFully(byte[] b) throws IOException {
         getDis().readFully(b);
     }
 
     @Override
-    public void readFully(byte b[], int off, int len) throws IOException {
+    public void readFully(byte[] b, int off, int len) throws IOException {
         getDis().readFully(b, off, len);
     }
 
@@ -230,7 +230,7 @@ public final class BitInputStream extends InputStream implements DataInput {
         return restoreSignBit(v);
     }
 
-    private final long restoreSignBit(long value) {
+    private long restoreSignBit(long value) {
         return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
     }
 
@@ -254,7 +254,7 @@ public final class BitInputStream extends InputStream implements DataInput {
     /**
      * Decode a given number of bits.
      *
-     * @param nbits the number of bit to decode
+     * @param count the number of bit to decode
      * @return the decoded value
      */
     public final long decodeBits(int count) throws IOException {
@@ -281,13 +281,13 @@ public final class BitInputStream extends InputStream implements DataInput {
      * {@link BitOutputStream#encodeUnsignedVarBits( long, int )}<br>
      * <br>
      *
-     * Please note that {@code noisybits} must match the value used for encoding.
+     * Please note that {@code noisyBits} must match the value used for encoding.
      *
-     * @param noisybits the number of lower bits considered noisy
+     * @param noisyBits the number of lower bits considered noisy
      * @return the decoded value
      */
-    public final long decodeUnsignedVarBits(int noisybits) throws IOException {
-        long noisyValue = decodeBits(noisybits);
+    public final long decodeUnsignedVarBits(int noisyBits) throws IOException {
+        long noisyValue = decodeBits(noisyBits);
         long range = 0L;
         int bits = 0;
         while (!decodeBit()) {
@@ -297,21 +297,21 @@ public final class BitInputStream extends InputStream implements DataInput {
             range = (range << 1) | 1L;
             bits++;
         }
-        return noisyValue | ((range + decodeBits(bits)) << noisybits);
+        return noisyValue | ((range + decodeBits(bits)) << noisyBits);
     }
 
     /**
      * Decoding twin to {@link BitOutputStream#encodeSignedVarBits( long, int )}<br>
      * <br>
      *
-     * Please note that {@code noisybits} must match the value used for encoding.
+     * Please note that {@code noisyBits} must match the value used for encoding.
      *
-     * @param noisybits the number of lower bits considered noisy
+     * @param noisyBits the number of lower bits considered noisy
      * @return the decoded value
      */
-    public final long decodeSignedVarBits(int noisybits) throws IOException {
+    public final long decodeSignedVarBits(int noisyBits) throws IOException {
         boolean isNegative = decodeBit();
-        long lv = decodeUnsignedVarBits(noisybits);
+        long lv = decodeUnsignedVarBits(noisyBits);
         return isNegative ? -lv - 1L : lv;
     }
 
@@ -356,70 +356,69 @@ public final class BitInputStream extends InputStream implements DataInput {
      * @param values        the array to decode into
      * @param offset        position in this array where to start
      * @param size          number of values to decode
-     * @param minLengthBits noisyBits used to encode bitlength of largest value
+     * @param minLengthBits noisyBits used to encode bit-length of largest value
      */
     public void decodeUniqueSortedArray(long[] values, int offset, int size, int minLengthBits) throws IOException {
         if (size > 0) {
-            int nbits = (int) decodeUnsignedVarBits(minLengthBits);
-            decodeUniqueSortedArray(values, 0, size, nbits, 0L);
+            int nBits = (int) decodeUnsignedVarBits(minLengthBits);
+            decodeUniqueSortedArray(values, offset, size, nBits, 0L);
         }
     }
 
     /**
      * Decoding twin to
-     * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, long, long )}
+     * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, int, long )}
      * <br>
      * See also {@link #decodeUniqueSortedArray( long[], int, int, int )}
      *
      * @param values     the array to encode
      * @param offset     position in this array where to start
-     * @param subsize    number of values to encode
-     * @param nextbitpos bitposition of the most significant bit
+     * @param subSize    number of values to encode
+     * @param nextBitPos bit-position of the most significant bit
      * @param value      should be 0 at recursion start
      */
-    protected void decodeUniqueSortedArray(long[] values, int offset, int subsize, int nextbitpos, long value)
+    protected void decodeUniqueSortedArray(long[] values, int offset, int subSize, int nextBitPos, long value)
             throws IOException {
-        if (subsize == 1) // last-choice shortcut
+        if (subSize == 1) // last-choice shortcut
         {
-            // ugly here: inverse bit-order then without the last-choice shortcut
+            // ugly here: inverse bit-order then without the last-choice shortcut,
             // but we do it that way for performance
-            values[offset] = value | decodeBits(nextbitpos + 1);
+            values[offset] = value | decodeBits(nextBitPos + 1);
             return;
         }
-        if (nextbitpos < 0L) { // cannot happen for unique, keep code for later
-            // while (subsize-- > 0) {
+        if (nextBitPos < 0L) { // cannot happen for unique, keep code for later
+            // while (subSize-- > 0) {
             // values[offset++] = value;
             // }
             // return;
             throw new RuntimeException("unique violation");
         }
 
-        long nextbit = 1L << nextbitpos;
+        long nextBit = 1L << nextBitPos;
         int size1;
-        if (subsize > nextbit) {
-            long max = nextbit;
-            long min = subsize - nextbit;
-            size1 = (int) (decodeBounded(max - min) + min);
+        if (subSize > nextBit) {
+            long min = subSize - nextBit;
+            size1 = (int) (decodeBounded(nextBit - min) + min);
         } else {
-            size1 = (int) decodeBounded(subsize);
+            size1 = (int) decodeBounded(subSize);
         }
-        int size2 = subsize - size1;
+        int size2 = subSize - size1;
 
         if (size1 > 0) {
-            decodeUniqueSortedArray(values, offset, size1, nextbitpos - 1, value);
+            decodeUniqueSortedArray(values, offset, size1, nextBitPos - 1, value);
         }
         if (size2 > 0) {
-            decodeUniqueSortedArray(values, offset + size1, size2, nextbitpos - 1, value | nextbit);
+            decodeUniqueSortedArray(values, offset + size1, size2, nextBitPos - 1, value | nextBit);
         }
     }
 
     /**
      * Decode some bits according to the given lengthArray (which is expected to be
      * 2^n in size, with n <= 32)
-     *
+     * <br>
      * This is very special logic for speeding up huffman decoding based on a lookup
      * table.
-     *
+     * <br>
      * But could be used for speeding up other var-length codes as well.
      *
      * @param lengthArray an array telling how much bits to consume for the observed

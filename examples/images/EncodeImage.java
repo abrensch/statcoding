@@ -10,19 +10,19 @@ import javax.imageio.ImageIO;
 
 /**
  * Simple example for image compression.
- * 
+ * <br><br>
  * It first extracts the palette, indexing all distinct ARGB values, and then
  * encodes the series of these index values using a standard model ( 2nd order
  * arithmetic encoding with fixed statistics + run length escape )
- * 
+ * <br><br>
  * It works o.k. over the whole range of images types (graphics, map-tiles,
  * screenshots, photos) and mostly beats PNG in compression ratio.
- * 
+ * <br><br>
  * However, for a large number of distinct colors it's not that good in terms of
  * performance and memory footprint.
- * 
+ * <br><br>
  * So this is NOT a proposal for a new image format (there are plenty already)
- * but just a demo on how the statcoding library could work also for other kinds
+ * but just a demo on how the stat-coding library could work also for other kinds
  * of data.
  */
 public class EncodeImage {
@@ -44,17 +44,15 @@ public class EncodeImage {
         // extract the color palette and sort by ARGB value
         SortedSet<Long> colorSet = new TreeSet<>();
         for (int i = 0; i < n; i++) {
-            Long col = Long.valueOf(data[i] & 0xffffffffL);
-            colorSet.add(col);
+            colorSet.add(data[i] & 0xffffffffL);
         }
         SortedMap<Long, Long> colorMap = new TreeMap<>();
         long[] colorArray = new long[colorSet.size()];
         for (Long col : colorSet) {
             int idx = colorMap.size();
-            colorArray[idx] = col.longValue();
-            colorMap.put(col, Long.valueOf(idx));
+            colorArray[idx] = col;
+            colorMap.put(col, (long)idx);
         }
-        colorSet = null;
 
         try (BitOutputStream bos = new BitOutputStream(new FileOutputStream(fileOut))) {
 
@@ -66,13 +64,13 @@ public class EncodeImage {
             bos.encodeUniqueSortedArray(colorArray);
 
             // encode the series of color index values using RlA2Encoder
-            // (=2nd order arithmetic encoding + runlengh-escape)
+            // (=2nd order arithmetic encoding + run-length-escape)
             // using 2-pass encoding (pass1: collect stats, pass2: encode)
             RlA2Encoder encoder = new RlA2Encoder(colorArray.length - 1, 8);
             for (int pass = 1; pass <= 2; pass++) {
                 encoder.init(bos);
                 for (int i = 0; i < n; i++) {
-                    Long col = Long.valueOf(data[i] & 0xffffffffL);
+                    long col = data[i] & 0xffffffffL;
                     encoder.encodeValue(colorMap.get(col));
                 }
                 encoder.finish();
@@ -80,7 +78,7 @@ public class EncodeImage {
         }
     }
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         new EncodeImage().processImage(new File(args[0]), new File(args[1]));
     }
 }

@@ -22,9 +22,9 @@ Usage
 Examples
 --------
 
- -  Example Lidar data processing:  [`examples/lidar/README.md`](examples/lidar/README.md).
+ -  Example Lidar data processing:  [`examples/lidar/`](examples/lidar/).
 
- -  Example simple image encoding:  [`examples/images/README.md`](examples/images/README.md).
+ -  Example simple image encoding:  [`examples/images/`](examples/images/).
 
 
 Release History

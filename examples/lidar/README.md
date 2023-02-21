@@ -16,11 +16,19 @@ formats. That allows much more efficient processing of such data.
 Example Usage
 -------------
 
- - Compile the image-compression example:
+ - Setup (Windows):
+
+   cd examples\lidar
+   set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
+
+ - Setup (Linux):
 
    cd examples/lidar
+   export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
 
-   javac -cp ../../target/statcoding-0.0.1-SNAPSHOT.jar;. -d . *.java
+ - Compile:
+
+   javac *.java
  
 
  - get some 1m Lidar ground model data (DGM1) for Bad Homburg in the current directory:
@@ -30,17 +38,17 @@ Example Usage
 
  - recode it to a compact format:
 
-   java -cp ..\..\target\statcoding-0.0.1-SNAPSHOT.jar;. RecodeLidarData
+   java RecodeLidarData
 
 
  - create a downscaled overview image:
 
-   java -cp ..\..\target\statcoding-0.0.1-SNAPSHOT.jar;. CreateLidarImage dgm1 bad_homburg.png 464 5560 480 5570 4
+   java CreateLidarImage dgm1 bad_homburg.png 464 5560 480 5570 4
 
 
- - zoom at "Kastell Saalburg" in full resultion:
+ - zoom at "Kastell Saalburg" in full resolution:
 
-   java -cp ..\..\target\statcoding-0.0.1-SNAPSHOT.jar;. CreateLidarImage dgm1 kastell_saalburg.png 468 5568 470 5570 1
+   java CreateLidarImage dgm1 kastell_saalburg.png 468 5568 470 5570 1
 
 
   -> When viewing kastell_saalburg.png: Do you see the remains of the border wall "Roman Limes" passing north of the Kastell ?

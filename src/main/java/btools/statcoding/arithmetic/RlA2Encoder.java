@@ -1,25 +1,24 @@
 package btools.statcoding.arithmetic;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import btools.statcoding.BitOutputStream;
 
 public class RlA2Encoder {
 
-    private long maxValue;
-    private long minRunlength;
+    private final long maxValue;
+    private final long minRunLength;
     private long lastValue;
     private long contextValue;
     private long repCount;
-    private ACContextEncoder[] encoders;
-    private int rleEscape = 0;
+    private final ACContextEncoder[] encoders;
+    private static final int rleEscape = 0;
     private int pass;
-    ArithmeticEncoder aEncoder;
+    private ArithmeticEncoder aEncoder;
 
-    public RlA2Encoder(long maxValue, long minRunlength) {
+    public RlA2Encoder(long maxValue, long minRunLength) {
         this.maxValue = maxValue;
-        this.minRunlength = minRunlength;
+        this.minRunLength = minRunLength;
         int n = (int) (maxValue + 2); // [0..maxValue,runLength]
         encoders = new ACContextEncoder[n];
         for (int i = 0; i < n; i++) {
@@ -30,12 +29,11 @@ public class RlA2Encoder {
     public void init(BitOutputStream bos) throws IOException {
         if (++pass == 2) {
             bos.encodeUnsignedVarBits(maxValue, 0);
-            bos.encodeUnsignedVarBits(minRunlength, 0);
+            bos.encodeUnsignedVarBits(minRunLength, 0);
             aEncoder = new ArithmeticEncoder(bos);
         }
-        int n = encoders.length;
-        for (int i = 0; i < n; i++) {
-            encoders[i].init(aEncoder);
+        for (ACContextEncoder encoder: encoders) {
+            encoder.init(aEncoder);
         }
         repCount = 0;
         lastValue = 0L;
@@ -54,9 +52,9 @@ public class RlA2Encoder {
     }
 
     private void flushLastValue() throws IOException {
-        if (repCount >= minRunlength) {
-            encoders[(int) contextValue].write(rleEscape); // prefix runlength escape
-            encoders[encoders.length - 1].write((int) repCount); // write runlength
+        if (repCount >= minRunLength) {
+            encoders[(int) contextValue].write(rleEscape); // prefix run-length escape
+            encoders[encoders.length - 1].write((int) repCount); // write run-length
             repCount = 1;
         }
         while (repCount > 0) {

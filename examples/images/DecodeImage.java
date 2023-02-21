@@ -1,11 +1,9 @@
 import btools.statcoding.BitInputStream;
 import btools.statcoding.arithmetic.RlA2Decoder;
 
-import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.*;
-import java.util.*;
 import javax.imageio.ImageIO;
 
 /**
@@ -44,7 +42,7 @@ public class DecodeImage {
         }
     }
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         new DecodeImage().processImage(args[0], args[1]);
     }
 }

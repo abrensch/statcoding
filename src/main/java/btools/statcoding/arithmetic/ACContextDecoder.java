@@ -1,16 +1,15 @@
 package btools.statcoding.arithmetic;
 
 import java.io.IOException;
-import java.util.*;
 
 import btools.statcoding.BitInputStream;
 
 /**
  * Decoder for arithmetic decoding that manages the statistics and the
  * re-mapping of symbols to the original numbering.
- *
+ * <br><br>
  * The actual arithmetic decoder that decodes the symbols from the bitstream
- * must be provided and can be shared over multiple-instance of ACContextDecoder
+ * must be provided and can be shared over multiple-instance of ACContextDecoder.
  *
  * @see ACContextEncoder
  */

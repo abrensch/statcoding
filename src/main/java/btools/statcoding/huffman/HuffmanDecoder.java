@@ -6,9 +6,9 @@ import btools.statcoding.BitInputStream;
 
 /**
  * Decoder for huffman-encoded objects.
- *
+ * <br><br>
  * Uses a lookup-table of configurable size to speed up decoding.
- *
+ * <br><br>
  * This is an abstract class because the method decodeObjectFromStream must be
  * implemented to decode the leafs of the huffman tree from the input stream.
  */
@@ -34,7 +34,7 @@ public abstract class HuffmanDecoder {
     /**
      * See {@link #init(BitInputStream, int)}
      *
-     * This inits with the default lookup sizing (8 bit = 256 entries)
+     * This initializes with the default lookup sizing (8 bit = 256 entries).
      *
      * @param bis the input stream to decode the tree and the symbols from
      */

@@ -9,14 +9,14 @@ import java.io.InputStream;
 import javax.imageio.ImageIO;
 
 /**
- * Decode some compact encoded lidartile and create a hill-shaded image,
- * optionally downscaled
+ * Decode some compact encoded lidar-tile and create a hill-shaded image,
+ * optionally downscaled.
  */
 public class CreateLidarImage {
 
     int[] data;
 
-    private void decodeTile(File fileIn, int offset, int rowsize, int downscale) throws Exception {
+    private void decodeTile(File fileIn, int offset, int rowSize, int downscale) throws Exception {
 
         long t0 = System.currentTimeMillis();
         DEM1LidarTile tile = new DEM1LidarTile();
@@ -27,14 +27,14 @@ public class CreateLidarImage {
         for (int y = 0; y < 1000; y++) {
             for (int x = 0; x < 1000; x++) {
                 int value = tileData[x + y * 1000];
-                data[offset + (x / downscale) - (y / downscale) * rowsize] = value;
+                data[offset + (x / downscale) - (y / downscale) * rowSize] = value;
             }
         }
         long t1 = System.currentTimeMillis();
         System.out.println("decoding " + fileIn + " took " + (t1 - t0) + " ms");
     }
 
-    private void createImage(String args[]) throws Exception {
+    private void createImage(String[] args) throws Exception {
         String dataType = args[0];
         String imageName = args[1];
         int minXkm = Integer.parseInt(args[2]);
@@ -52,7 +52,11 @@ public class CreateLidarImage {
         data = ((DataBufferInt) argbImage.getRaster().getDataBuffer()).getData();
 
         // now look for lidar squares in that region
-        File[] files = new File("data").listFiles();
+        File dataDir = new File("data");
+        File[] files = dataDir.listFiles();
+        if ( files == null ) {
+            throw new IllegalArgumentException( "cannot read files in data-dir: " + dataDir );
+        }
         for (File f : files) {
             DEM1LidarTile tile = new DEM1LidarTile();
             if (tile.parseMetadataFromFileName(f.getName()) && tile.getDataType().equals(dataType)) {
@@ -66,7 +70,7 @@ public class CreateLidarImage {
             }
         }
 
-        // apply poor mans hillshading and rgb-encoding
+        // apply poor man's hill-shading and rgb-encoding
         for (int y = 0; y < sizeY; y++) {
             for (int x = 0; x < sizeX; x++) {
                 int v0 = data[sizeX * y + x];
@@ -82,7 +86,7 @@ public class CreateLidarImage {
         ImageIO.write(argbImage, "png", new FileOutputStream(imageName));
     }
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         if (args.length < 7) {
             System.out.println(
                     "usage: java CreateLidarImage <dataType> <imageFileName> <minXkm> <minYkm> <maxXkm> <maxYkm> <downscale>");

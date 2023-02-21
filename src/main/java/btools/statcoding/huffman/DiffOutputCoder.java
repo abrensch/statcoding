@@ -9,8 +9,8 @@ public final class DiffOutputCoder {
     private long lastLastValue;
     private long repCount;
 
-    private LongEncoder diffEncoder = new SignedLongEncoder();
-    private LongEncoder repEncoder = new LongEncoder();
+    private final LongEncoder diffEncoder = new SignedLongEncoder();
+    private final LongEncoder repEncoder = new LongEncoder();
 
     public void init(BitOutputStream bos) throws IOException {
         diffEncoder.init(bos);
@@ -23,8 +23,8 @@ public final class DiffOutputCoder {
             long d = lastValue - lastLastValue;
             lastLastValue = lastValue;
 
-            diffEncoder.encodeLong(d);
-            repEncoder.encodeLong(repCount - 1);
+            diffEncoder.encodeObject(d);
+            repEncoder.encodeObject(repCount - 1);
 
             repCount = 0;
         }
@@ -37,22 +37,16 @@ public final class DiffOutputCoder {
     }
 
     private static class LongEncoder extends HuffmanEncoder {
-        public void encodeLong(long value) throws IOException {
-            encodeObject(Long.valueOf(value));
-        }
-
         @Override
         protected void encodeObjectToStream(Object obj) throws IOException {
-            long lv = ((Long) obj).longValue();
-            bos.encodeUnsignedVarBits(lv, 0);
+            bos.encodeUnsignedVarBits( (Long) obj, 0);
         }
     }
 
     private static class SignedLongEncoder extends LongEncoder {
         @Override
         protected void encodeObjectToStream(Object obj) throws IOException {
-            long lv = ((Long) obj).longValue();
-            bos.encodeSignedVarBits(lv, 0);
+            bos.encodeSignedVarBits((Long) obj, 0);
         }
     }
 }
