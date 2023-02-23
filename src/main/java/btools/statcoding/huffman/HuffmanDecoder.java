@@ -68,6 +68,12 @@ public abstract class HuffmanDecoder {
         }
     }
 
+    /**
+     * Decode the objects that this huffman encoder operates on from the underlying
+     * bit stream. This method is called while decoding the huffman tree.
+     *
+     * @return the decoded object
+     */
     protected abstract Object decodeObjectFromStream() throws IOException;
 
     private Object decodeTree(int offset, int bits) throws IOException {
