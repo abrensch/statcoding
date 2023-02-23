@@ -15,11 +15,13 @@ public class HuffmanCodingTest extends TestCase {
 
         // explicitly test also the "no symbol" case (nsymbols=0) and "only 1 Symbol"
         for (int nsymbols = 0; nsymbols < testLongs.length; nsymbols++) {
-            testHuffmanCoding(nsymbols);
+            testHuffmanCoding(nsymbols, 0 );
+            testHuffmanCoding(nsymbols, 8 );
+            testHuffmanCoding(nsymbols, 20 );
         }
     }
 
-    private void testHuffmanCoding(int nsymbols) throws IOException {
+    private void testHuffmanCoding(int nsymbols, int lookupBits ) throws IOException {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -34,8 +36,13 @@ public class HuffmanCodingTest extends TestCase {
 
             for (int pass = 1; pass <= 2; pass++) { // 2-pass encoding!
                 enc.init(bos);
+                long bits0 = bos.getBitPosition();
                 for (int i = 0; i < nsymbols; i++) {
                     enc.encodeObject(Long.valueOf(testLongs[i]));
+                }
+                long bits1 = bos.getBitPosition();
+                if ( pass == 2 ) {
+                    assertTrue( enc.getStats().contains ( "" + (bits1-bits0) ) );
                 }
             }
         }
@@ -49,7 +56,7 @@ public class HuffmanCodingTest extends TestCase {
                     return Long.valueOf(bis.decodeUnsignedVarBits(0));
                 }
             };
-            dec.init(bis);
+            dec.init(bis, lookupBits);
 
             for (int i = 0; i < nsymbols; i++) {
                 assertEquals(((Long) dec.decodeObject()).longValue(), testLongs[i]);

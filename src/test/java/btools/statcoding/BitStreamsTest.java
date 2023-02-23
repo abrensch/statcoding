@@ -23,11 +23,12 @@ public class BitStreamsTest extends TestCase {
             }
             bos.encodeSignedVarBits(Long.MIN_VALUE, 0);
         }
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        byte[] ab = baos.toByteArray();
+        ByteArrayInputStream bais = new ByteArrayInputStream(ab);
         try (BitInputStream bis = new BitInputStream(bais)) {
-
             assertTrue(bis.decodeBit());
             assertFalse(bis.decodeBit());
+            assertEquals( ab.length-1, bis.available() );
             for (long l : testLongs) {
                 assertEquals(bis.decodeUnsignedVarBits(0), l);
                 assertEquals(bis.decodeSignedVarBits(0), l);
@@ -106,11 +107,22 @@ public class BitStreamsTest extends TestCase {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (BitOutputStream bos = new BitOutputStream(baos)) {
             bos.encodeUniqueSortedArray(values);
+            bos.encodeUniqueSortedArray(new long[0]);
+            bos.encodeUniqueSortedArray(values,1,2);
+            bos.writeSyncBlock(0L);
         }
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         try (BitInputStream bis = new BitInputStream(bais)) {
             long[] decodedValues = bis.decodeUniqueSortedArray();
+            long[] emptyArray = bis.decodeUniqueSortedArray();
+            long[] smallArray = new long[2];
+            bis.decodeUniqueSortedArray(smallArray,0,2);
+            long syncBlock = bis.readSyncBlock();
             assertTrue(Arrays.equals(values, decodedValues));
+            assertTrue(emptyArray.length == 0);
+            // assertEquals(values[1], smallArray[0] );
+            // assertEquals(values[2], smallArray[1] );
+            assertEquals(syncBlock, 0L);
         }
     }
 

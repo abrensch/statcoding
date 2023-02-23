@@ -28,7 +28,7 @@ public class RlH2Decoder {
                     return bis.decodeBounded(maxValue + 1) - 1L;
                 }
             };
-            decoders[i].init(bis);
+            decoders[i].init(bis, 8);
         }
 
         repCount = 0;

@@ -32,17 +32,6 @@ public abstract class HuffmanDecoder {
     }
 
     /**
-     * See {@link #init(BitInputStream, int)}
-     *
-     * This initializes with the default lookup sizing (8 bit = 256 entries).
-     *
-     * @param bis the input stream to decode the tree and the symbols from
-     */
-    public void init(BitInputStream bis) throws IOException {
-        init(bis, 8);
-    }
-
-    /**
      * Initialize this huffman decoder. That decodes the tree from the underlying
      * input stream and builds a lookup table of the given size.
      *

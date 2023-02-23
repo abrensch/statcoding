@@ -13,8 +13,8 @@ public class DiffInputCoder {
     private final LongDecoder repDecoder = new LongDecoder();
 
     public void init(BitInputStream bis) throws IOException {
-        diffDecoder.init(bis);
-        repDecoder.init(bis);
+        diffDecoder.init(bis, 8);
+        repDecoder.init(bis, 8);
     }
 
     public long readDiffed() throws IOException {

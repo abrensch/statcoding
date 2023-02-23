@@ -31,11 +31,11 @@ public final class ACContextDecoder {
         int size = (int) bis.decodeUnsignedVarBits(0);
         if (size > 1) { // need no stats for size = 1
             stats = new long[size];
-            bis.decodeUniqueSortedArray(stats, 0, size, 0);
+            bis.decodeUniqueSortedArray(stats, 0, size);
         }
         if (size > 0) {
             idx2symbol = new long[size];
-            bis.decodeUniqueSortedArray(idx2symbol, 0, size, 3);
+            bis.decodeUniqueSortedArray(idx2symbol, 0, size);
         }
     }
 

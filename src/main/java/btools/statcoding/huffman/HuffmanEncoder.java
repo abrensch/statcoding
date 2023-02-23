@@ -40,6 +40,16 @@ public abstract class HuffmanEncoder {
         }
     }
 
+    /**
+     * Initialize the encoder. Must be called at the beginning
+     * of each of the 2 encoding passes. For pass 1 this only
+     * increments the pass-counter
+     * (and the given bitstream is allowed to be null). For pass 2
+     * this encodes the tree and registers the bit stream for subsequent
+     * data encoding.
+     *
+     * @param bos the bit stream to use for encoding tree and data
+     */
     public void init(BitOutputStream bos) throws IOException {
         this.bos = bos;
         if (++pass == 2) { // encode the dictionary in pass 2
@@ -63,7 +73,7 @@ public abstract class HuffmanEncoder {
         }
     }
 
-    public void encodeTree(TreeNode node, int bits, long code) throws IOException {
+    private void encodeTree(TreeNode node, int bits, long code) throws IOException {
         node.bits = bits;
         node.code = code;
         boolean isNode = node.child1 != null;
@@ -76,8 +86,29 @@ public abstract class HuffmanEncoder {
         }
     }
 
+    /**
+     * Encode the objects that this huffman encoder operates on
+     * into the underlying bit stream. This method is calles
+     * while encoding the huffman tree.
+     *
+     * @param obj the object to encode
+     */
     protected abstract void encodeObjectToStream(Object obj) throws IOException;
 
+    /**
+     * Get a summary on the statistics used to build
+     * the current huffman tree as a textual line.
+     * Reported are the total numbers of symbols
+     * seen, the number of distinct values (=leafs
+     * of the tree), the total number of bits needed
+     * to encode all symbols and the entropy.
+     * The ratio of encoding bits and entropy
+     * shows how efficient huffman coding is on that data.
+     * (For arithmetic coding encoding bits and entropy
+     * would be nearly equal).
+     *
+     * @return statistic summary as a textline
+     */
     public String getStats() {
         double entropy = 0.;
         long bits = 0L;
@@ -100,11 +131,11 @@ public abstract class HuffmanEncoder {
         TreeNode child1, child2;
         long id; // serial id to make the comparator well-defined for equal frequencies
 
-        public TreeNode(long id) {
+         TreeNode(long id) {
             this.id = id;
         }
 
-        public static class FrequencyComparator implements Comparator<TreeNode> {
+         static class FrequencyComparator implements Comparator<TreeNode> {
 
             @Override
             public int compare(TreeNode tn1, TreeNode tn2) {

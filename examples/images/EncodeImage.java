@@ -54,7 +54,7 @@ public class EncodeImage {
             colorMap.put(col, (long)idx);
         }
 
-        try (BitOutputStream bos = new BitOutputStream(new FileOutputStream(fileOut))) {
+        try (BitOutputStream bos = new BitOutputStream(new BufferedOutputStream( new FileOutputStream(fileOut)))) {
 
             // encode the image dimensions
             bos.encodeUnsignedVarBits(w, 9);

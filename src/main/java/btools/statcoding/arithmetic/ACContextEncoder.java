@@ -51,9 +51,9 @@ public final class ACContextEncoder {
             // encode statistics
             bos.encodeUnsignedVarBits(size, 0);
             if (size > 1) { // need no stats for size = 1
-                bos.encodeUniqueSortedArray(stats, 0, size, 0);
+                bos.encodeUniqueSortedArray(stats, 0, size);
             }
-            bos.encodeUniqueSortedArray(idx2symbol, 0, size, 3);
+            bos.encodeUniqueSortedArray(idx2symbol, 0, size);
         }
     }
 

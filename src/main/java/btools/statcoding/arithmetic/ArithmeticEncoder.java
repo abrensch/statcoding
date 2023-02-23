@@ -68,12 +68,20 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
     }
 
     protected void shift() throws IOException {
-        int bit = (int) (low >>> (numStateBits - 1));
-        output.encodeBit(bit != 0);
-
-        // Write out the saved underflow bits
-        for (; numUnderflow > 0; numUnderflow--)
-            output.encodeBit(bit == 0);
+        // write the current top-bit followed by numUnderflow inverse bits
+        // to the underlying output stream
+        long bitPattern = (low & halfRange) == 0L ? 0x1feL : 1L;
+        long bitsToWrite = numUnderflow+1;
+        long bitsNow = Math.min( bitsToWrite, 8 );
+        output.encodeBits( (int)bitsNow, bitPattern );
+        bitsToWrite -= bitsNow;
+        bitPattern >>>= 1; // low bit now same as all others
+        while( bitsToWrite > 0)  {
+            bitsNow = Math.min( bitsToWrite, 8 );
+            output.encodeBits( (int)bitsNow, bitPattern );
+            bitsToWrite -= bitsNow;
+        }
+        numUnderflow = 0L;
     }
 
     protected void underflow() {

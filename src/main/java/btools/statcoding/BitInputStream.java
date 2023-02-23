@@ -344,23 +344,22 @@ public class BitInputStream extends InputStream implements DataInput {
     public long[] decodeUniqueSortedArray() throws IOException {
         int size = (int) decodeUnsignedVarBits(0);
         long[] values = new long[size];
-        decodeUniqueSortedArray(values, 0, size, 0);
+        decodeUniqueSortedArray(values, 0, size);
         return values;
     }
 
     /**
      * Decoding twin to
-     * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, int )} <br>
+     * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int )} <br>
      * See also {@link #decodeUniqueSortedArray()}
      *
      * @param values        the array to decode into
      * @param offset        position in this array where to start
      * @param size          number of values to decode
-     * @param minLengthBits noisyBits used to encode bit-length of largest value
      */
-    public void decodeUniqueSortedArray(long[] values, int offset, int size, int minLengthBits) throws IOException {
+    public void decodeUniqueSortedArray(long[] values, int offset, int size) throws IOException {
         if (size > 0) {
-            int nBits = (int) decodeUnsignedVarBits(minLengthBits);
+            int nBits = (int) decodeUnsignedVarBits(8);
             decodeUniqueSortedArray(values, offset, size, nBits, 0L);
         }
     }
@@ -369,7 +368,7 @@ public class BitInputStream extends InputStream implements DataInput {
      * Decoding twin to
      * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int, int, long )}
      * <br>
-     * See also {@link #decodeUniqueSortedArray( long[], int, int, int )}
+     * See also {@link #decodeUniqueSortedArray( long[], int, int )}
      *
      * @param values     the array to encode
      * @param offset     position in this array where to start

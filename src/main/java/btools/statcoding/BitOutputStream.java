@@ -370,7 +370,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     public void encodeUniqueSortedArray(long[] values) throws IOException {
         int size = values.length;
         encodeUnsignedVarBits(size, 0);
-        encodeUniqueSortedArray(values, 0, size, 0);
+        encodeUniqueSortedArray(values, 0, size);
     }
 
     /**
@@ -381,9 +381,8 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      * @param values        the array to encode
      * @param offset        position in this array where to start
      * @param size          number of values to encode
-     * @param minLengthBits noisyBits used to encode bit-length of largest value
      */
-    public void encodeUniqueSortedArray(long[] values, int offset, int size, int minLengthBits) throws IOException {
+    public void encodeUniqueSortedArray(long[] values, int offset, int size) throws IOException {
         if (size > 0) {
             long max = values[size - 1];
             int nBits = 0;
@@ -391,7 +390,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
                 nBits++;
             }
             checkUniqueSortedArray(values, offset, size);
-            encodeUnsignedVarBits(nBits, minLengthBits);
+            encodeUnsignedVarBits(nBits, 8);
             encodeUniqueSortedArray(values, offset, size, nBits, 0L);
         }
     }

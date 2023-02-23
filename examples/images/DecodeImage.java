@@ -15,7 +15,7 @@ public class DecodeImage {
 
     private void processImage(String fileIn, String fileOut) throws Exception {
 
-        try (BitInputStream bis = new BitInputStream(new FileInputStream(fileIn))) {
+        try (BitInputStream bis = new BitInputStream(new BufferedInputStream( new FileInputStream(fileIn)))) {
 
             // decode the image dimensions
             int w = (int) bis.decodeUnsignedVarBits(9);
