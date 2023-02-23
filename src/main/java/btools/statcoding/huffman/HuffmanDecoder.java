@@ -5,10 +5,10 @@ import java.io.IOException;
 import btools.statcoding.BitInputStream;
 
 /**
- * Decoder for huffman-encoded objects.
- * <br><br>
- * Uses a lookup-table of configurable size to speed up decoding.
- * <br><br>
+ * Decoder for huffman-encoded objects. <br>
+ * <br>
+ * Uses a lookup-table of configurable size to speed up decoding. <br>
+ * <br>
  * This is an abstract class because the method decodeObjectFromStream must be
  * implemented to decode the leafs of the huffman tree from the input stream.
  */
@@ -20,6 +20,13 @@ public abstract class HuffmanDecoder {
     private Object[] subtrees;
     private int[] lengths;
 
+    /**
+     * Decodes an object from the underlying input stream. The object returned is
+     * actually not a new instance each time, but a leaf of the tree decoded during
+     * init.
+     *
+     * @return obj the decoded object
+     */
     public final Object decodeObject() throws IOException {
         int idx = bis.decodeLookupIndex(lengths);
         Object node = subtrees[idx];
@@ -33,13 +40,21 @@ public abstract class HuffmanDecoder {
 
     /**
      * Initialize this huffman decoder. That decodes the tree from the underlying
-     * input stream and builds a lookup table of the given size.
+     * input stream and builds a lookup table of the given size.<br>
+     * <br>
+     * Calling init more then once can be used to use a different bit stream for
+     * data decoding, not the one that was used for tree decoding. In that case the
+     * lookupBits parameter is ignored.
      *
      * @param bis        the input stream to decode the tree and the symbols from
      * @param lookupBits use a lookup table of size 2^lookupBits for speedup
      */
     public void init(BitInputStream bis, int lookupBits) throws IOException {
 
+        if (this.bis != null) {
+            this.bis = bis;
+            return;
+        }
         if (lookupBits < 0 || lookupBits > 20) {
             throw new IllegalArgumentException("lookupBits ot of range ( 0..20 ): " + lookupBits);
         }

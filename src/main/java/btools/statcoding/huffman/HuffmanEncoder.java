@@ -23,6 +23,13 @@ public abstract class HuffmanEncoder {
     private int pass;
     private long nextTagValueSetId;
 
+    /**
+     * Encode an object. In pass 1 this gathers statistics,
+     * in pass 2 this actually writes the huffman code to
+     * the underlying output stream.
+     *
+     * @param obj the object to encode
+     */
     public void encodeObject(Object obj) throws IOException {
         TreeNode tn = symbols.get(obj);
         if (pass == 2) {
@@ -44,15 +51,17 @@ public abstract class HuffmanEncoder {
      * Initialize the encoder. Must be called at the beginning
      * of each of the 2 encoding passes. For pass 1 this only
      * increments the pass-counter
-     * (and the given bitstream is allowed to be null). For pass 2
+     * (and the given bit stream is allowed to be null). For pass 2
      * this encodes the tree and registers the bit stream for subsequent
      * data encoding.
-     *
+     * Calling init more then twice can be used to delegate data encoding
+     * to other bit streams.
      * @param bos the bit stream to use for encoding tree and data
      */
     public void init(BitOutputStream bos) throws IOException {
         this.bos = bos;
-        if (++pass == 2) { // encode the dictionary in pass 2
+        pass = Math.min( pass+1, 2);
+        if (pass == 2) { // encode the dictionary in pass 2
 
             boolean hasSymbols = !symbols.isEmpty();
             bos.encodeBit(hasSymbols);
