@@ -11,6 +11,8 @@ The data tiles are transformed to a proprietary format which is
 5 times smaller and decodes 20 times faster compared to the downloadable
 formats. That allows much more efficient processing of such data.
 
+<img src="https://raw.githubusercontent.com/abrensch/statcoding/main/examples/lidar/bad_homburg_dgm1.webp" width="50%"/>
+
 
 Example Usage
 -------------
