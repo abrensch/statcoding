@@ -4,6 +4,7 @@ import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * BitInputStream is a replacement for java.io.DataInputStream extending it by
@@ -233,6 +234,29 @@ public class BitInputStream extends InputStream implements DataInput {
     private long restoreSignBit(long value) {
         return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
     }
+
+    /**
+     * Decoding twin to {@link BitOutputStream#encodeString( String )}
+     *
+     * @return the decoded long value
+     */
+    public final String decodeString() throws IOException {
+
+        long byteLength = decodeVarBytes();
+        if ( byteLength == 0L ) {
+            return "";
+        }
+        if ( byteLength == -1L ) {
+            return null;
+        }
+        if ( byteLength < 0L || byteLength > 0x7FFFFFFFL ) {
+            throw new IllegalArgumentException( "decodeString: byeLength out of range: " + byteLength );
+        }
+        byte[] ab = new byte[(int)byteLength];
+        readFully(ab);
+        return new String( ab, StandardCharsets.UTF_8 );
+    }
+
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****

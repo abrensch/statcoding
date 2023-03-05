@@ -70,6 +70,8 @@ public class BitStreamsTest extends TestCase {
         try (BitOutputStream bos = new BitOutputStream(baos)) {
             bos.encodeBits(3, 6L);
             bos.writeUTF("hallo");
+            bos.encodeString("du d\u00f6del du");
+            bos.encodeString(null);
             bos.encodeBits(5, 7L);
             bos.flush();
             bos.writeUTF("duda");
@@ -79,6 +81,8 @@ public class BitStreamsTest extends TestCase {
 
             assertEquals(bis.decodeBits(3), 6L);
             assertEquals(bis.readUTF(), "hallo");
+            assertEquals(bis.decodeString(), "du d\u00f6del du");
+            assertEquals(bis.decodeString(), null);
             assertEquals(bis.decodeBits(5), 7L);
             assertEquals(bis.readUTF(), "duda");
         }

@@ -4,6 +4,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * BitOutputStream is a replacement for java.io.DataOutputStream extending it by
@@ -228,6 +229,30 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     private long moveSignBit(long value) {
         return value < 0L ? 1L | ((-value - 1L) << 1) | 1 : value << 1;
     }
+
+    /**
+     * encodeString() is pretty much the same as writeUTF. Except that is uses
+     * a variable length size header (thus no 64k limit) and is able to encode
+     * null references
+     *
+     * @param value the String to encode (my be null)
+     *
+     * @see BitInputStream#decodeString
+     */
+    public final void encodeString(String value) throws IOException {
+        if ( value == null ) {
+            encodeVarBytes( -1L );
+            return;
+        }
+        if ( value.isEmpty() ) {
+            encodeVarBytes( 0L );
+            return;
+        }
+        byte[] ab = value.getBytes(StandardCharsets.UTF_8);
+        encodeVarBytes( ab.length );
+        write( ab );
+    }
+
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****
