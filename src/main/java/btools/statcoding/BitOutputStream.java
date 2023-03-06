@@ -19,7 +19,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     private long b; // buffer word
     private long bytesWritten;
 
-    private final OutputStream out;
+    protected final OutputStream out;
     private DataOutputStream dos; // created lazily if needed
 
     /**

@@ -24,7 +24,7 @@ public class BitInputStream extends InputStream implements DataInput {
     private int eofBits; // dummy bits read after eof
     private long b; // buffer word
 
-    private final InputStream in;
+    protected InputStream in;
     private DataInputStream dis; // created lazily if needed
 
     public BitInputStream(InputStream is) {
@@ -117,6 +117,11 @@ public class BitInputStream extends InputStream implements DataInput {
     @Override
     public int available() throws IOException {
         return (bits >> 3) + in.available();
+    }
+
+    @Override
+    public void close() throws IOException {
+        in.close();
     }
 
     // **************************************
