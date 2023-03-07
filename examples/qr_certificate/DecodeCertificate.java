@@ -6,7 +6,7 @@ import btools.statcoding.*;
  */
 public class DecodeCertificate {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
     	
     	  if ( args.length != 1 || !args[0].startsWith( "HC7:" ) ) {
     	  	  System.out.println( "usage:\njava DecodeCertificate HC7:xxx..." );
@@ -17,7 +17,7 @@ public class DecodeCertificate {
     	
         try ( BitInputStream bis = new BitInputStream( new ByteArrayInputStream( ab ) ) ) {
 
-        	  int payloadSize = bis.decodeVarBytes();
+        	  int payloadSize = (int)bis.decodeVarBytes();
         	  byte[] payloadData = new byte[payloadSize];
         	  bis.readFully( payloadData );
         	  
@@ -25,13 +25,13 @@ public class DecodeCertificate {
         	      c = new CovidCertificate( isPayload );
         	  }
 
-        	  int signatureSize = bis.decodeVarBytes();
+        	  int signatureSize = (int)bis.decodeVarBytes();
         	  byte[] signatureData = new byte[signatureSize];
-        	  bis.readFully( payload );
+        	  bis.readFully( signatureData );
 
-            boolean signatureValid = SignTool.verifySignature( payloadData, signatureData );            
+            boolean signatureValid = new SignTool().verifySignature( payloadData, signatureData );            
         	  System.out.println( "Signature-Check: " + ( signatureValid ? "valid" : "********** INVALID !! ***********" ) );
-        	  System.out.println( new CovidCertificate( bis ) );
+        	  System.out.println( c );
         }
     }
 }

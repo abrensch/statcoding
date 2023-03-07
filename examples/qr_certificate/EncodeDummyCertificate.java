@@ -13,16 +13,26 @@ import btools.statcoding.PrefixedBitOutputStream;
  */
 public class EncodeDummyCertificate {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
     	
         CovidCertificate c = DummyCertificateFactory.getInstance();
         
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try ( BitOutputStream bos = new BitOutputStream( baos ) ) {
-        	  c.writeToStream( bos );
+            c.writeToStream( bos );
+        }
+        byte[] payloadData = baos.toByteArray();
+        byte[] signatureData = new SignTool().createSignature( payloadData );
+        
+        baos = new ByteArrayOutputStream();
+        try ( BitOutputStream bos = new BitOutputStream( baos ) ) {
+            bos.encodeVarBytes( payloadData.length );
+            bos.write( payloadData );
+            bos.encodeVarBytes( signatureData.length );
+            bos.write( signatureData );
         }
         byte[] ab = baos.toByteArray();
-        
+
         StringBuilder sb = new StringBuilder( "HC7:" ); // EU's DCC is HC1: ...
         Base44.encode( sb, ab );
         System.out.println( sb.toString() );
