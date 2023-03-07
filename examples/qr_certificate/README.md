@@ -5,6 +5,8 @@ This is a no-frills version of a digital certificate. The example
 imitates the "European Digital Covid Certificate" (EU DCC), but in plain
 vanilla and without the dependency-hell.
 
+<img src="https://raw.githubusercontent.com/abrensch/statcoding/main/examples/qr_certificate/example_qr_codes.png" width="100%"/>
+
 But please think of any piece of structured information that is to be
 packed into a QR code together with a digital signature (could be
 event-tickets, medical documents, Proof of ability, ...)
