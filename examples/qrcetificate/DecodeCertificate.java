@@ -2,7 +2,7 @@ import java.io.*;
 import btools.statcoding.*;
 
 /**
- * Decode a certificate
+ * Decode a certificate and verify the digital signature
  */
 public class DecodeCertificate {
 
@@ -13,9 +13,24 @@ public class DecodeCertificate {
     	  	  return;
     	  }
         byte[] ab = Base44.decode( args[0], 4 );
+        CovidCertificate c = null;
     	
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try ( BitInputStream bis = new BitInputStream( new ByteArrayInputStream( ab ) ) ) {
+
+        	  int payloadSize = bis.decodeVarBytes();
+        	  byte[] payloadData = new byte[payloadSize];
+        	  bis.readFully( payloadData );
+        	  
+            try ( BitInputStream isPayload = new BitInputStream( new ByteArrayInputStream( payloadData ) ) ) {
+        	      c = new CovidCertificate( isPayload );
+        	  }
+
+        	  int signatureSize = bis.decodeVarBytes();
+        	  byte[] signatureData = new byte[signatureSize];
+        	  bis.readFully( payload );
+
+            boolean signatureValid = SignTool.verifySignature( payloadData, signatureData );            
+        	  System.out.println( "Signature-Check: " + ( signatureValid ? "valid" : "********** INVALID !! ***********" ) );
         	  System.out.println( new CovidCertificate( bis ) );
         }
     }
