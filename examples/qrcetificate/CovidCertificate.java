@@ -1,9 +1,5 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.util.StringTokenizer;
+import java.io.*;
+import java.util.*;
 
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
@@ -23,43 +19,54 @@ public class CovidCertificate {
     public String standardName;
     public String dateOfBirth;
 
-    public List<VaccinationEntry> vaccinationEntries;
+    public final List<VaccinationEntry> vaccinationEntries = new ArrayList<>();
 
+    public CovidCertificate() {
+    }
 
     /**
      * Encode this certificate to a bit-stream
      */
-    public void writeToStream( BitOutputStream bos ) {
-        try( PrefixedBitOutputStream os = new PrefixedBitOutputStream( bos, majorVersion , minorVersion ) {
+    public void writeToStream( BitOutputStream bos ) throws IOException {
+        try( PrefixedBitOutputStream os = new PrefixedBitOutputStream( bos, majorVersion , minorVersion ) ) {
             os.encodeString( firstName );
             os.encodeString( lastName );
             os.encodeString( standardName );
             os.encodeString( dateOfBirth );
-            int nv = vaccinationEntries == null ? 0 : vaccinationEntries.size();
-            os.encodeVarBytes( nv );
-            for( int i=0; i<nv; i++ ) {
-                vaccinationEntries.get(i).writeToStream( os );
+            os.encodeVarBytes( vaccinationEntries.size() );
+            for( VaccinationEntry ve: vaccinationEntries ) {
+                ve.writeToStream( os );
             }
         }
     }
+
 
     /**
      * Decode a certificate from a bit-stream
      */
-    public CovidCertificate readFromStream( BitInputStream bis ) {
-        try( PrefixedBitOutputStream os = new PrefixedBitOutputStream( bos, majorVersion , minorVersion ) {
-            os.encodeString( firstName );
-            os.encodeString( lastName );
-            os.encodeString( standardName );
-            os.encodeString( dateOfBirth );
-            int nv = vaccinationEntries == null ? 0 : vaccinationEntries.size();
-            os.encodeVarBytes( nv );
-            for( int i=0; i<nv; i++ ) {
-                vaccinationEntries.get(i).writeToStream( os );
+    public CovidCertificate( BitInputStream bis ) throws IOException {
+        try( PrefixedBitInputStream is = new PrefixedBitInputStream( bis, majorVersion ) ) {
+            firstName = is.decodeString();
+            lastName = is.decodeString();
+            standardName = is.decodeString();
+            dateOfBirth = is.decodeString();
+            long nv = is.decodeVarBytes();
+            for( long i=0; i<nv; i++ ) {
+                vaccinationEntries.add( new VaccinationEntry( is ) );
             }
         }
     }
-
-
     
+    
+    public String toString() {
+    	StringBuilder sb = new StringBuilder( "\n*** Covid Certificate contents ***"
+      + "\nfirstName=" + firstName
+      + "\nlastName=" + lastName
+      + "\nstandardName=" + standardName
+      + "\ndateOfBirth=" + dateOfBirth );
+      for( VaccinationEntry ve: vaccinationEntries ) {
+          sb.append( "\n" ).append( ve );
+      }
+      return sb.toString();
+    }
 }

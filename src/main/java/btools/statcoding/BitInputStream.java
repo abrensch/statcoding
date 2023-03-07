@@ -47,6 +47,10 @@ public class BitInputStream extends InputStream implements DataInput {
         }
     }
 
+    public boolean hasMoreRealBits() {
+        return eofBits == 0 || bits > eofBits;
+    }
+
     /**
      * This actually just calls readLong(), but is a method on it's for
      * documentation: if the underlying input stream is still used by other
