@@ -9,7 +9,7 @@ public class DummyCertificateFactory {
         c.lastName = "Duck";
         c.standardName = "DAGOBERT DUCK";
         c.dateOfBirth = "1958-06-08";
-        
+
         VaccinationEntry e = new VaccinationEntry();
         e.certificateID = java.util.UUID.randomUUID().toString();
         e.country = "DE";
@@ -19,8 +19,8 @@ public class DummyCertificateFactory {
         e.manufacturer = "Biontech";
         e.vaccineName = "Comirnaty";
         e.vaccineType = "SARS-CoV-2 mNA vaccine";
-        
-        c.vaccinationEntries.add( e );
+
+        c.vaccinationEntries.add(e);
         return c;
     }
 }

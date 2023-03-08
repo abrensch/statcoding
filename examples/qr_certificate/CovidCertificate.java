@@ -27,46 +27,41 @@ public class CovidCertificate {
     /**
      * Encode this certificate to a bit-stream
      */
-    public void writeToStream( BitOutputStream bos ) throws IOException {
-        try( PrefixedBitOutputStream os = new PrefixedBitOutputStream( bos, majorVersion , minorVersion ) ) {
-            os.encodeString( firstName );
-            os.encodeString( lastName );
-            os.encodeString( standardName );
-            os.encodeString( dateOfBirth );
-            os.encodeVarBytes( vaccinationEntries.size() );
-            for( VaccinationEntry ve: vaccinationEntries ) {
-                ve.writeToStream( os );
+    public void writeToStream(BitOutputStream bos) throws IOException {
+        try (PrefixedBitOutputStream os = new PrefixedBitOutputStream(bos, majorVersion, minorVersion)) {
+            os.encodeString(firstName);
+            os.encodeString(lastName);
+            os.encodeString(standardName);
+            os.encodeString(dateOfBirth);
+            os.encodeVarBytes(vaccinationEntries.size());
+            for (VaccinationEntry ve : vaccinationEntries) {
+                ve.writeToStream(os);
             }
         }
     }
 
-
     /**
      * Decode a certificate from a bit-stream
      */
-    public CovidCertificate( BitInputStream bis ) throws IOException {
-        try( PrefixedBitInputStream is = new PrefixedBitInputStream( bis, majorVersion ) ) {
+    public CovidCertificate(BitInputStream bis) throws IOException {
+        try (PrefixedBitInputStream is = new PrefixedBitInputStream(bis, majorVersion)) {
             firstName = is.decodeString();
             lastName = is.decodeString();
             standardName = is.decodeString();
             dateOfBirth = is.decodeString();
             long nv = is.decodeVarBytes();
-            for( long i=0; i<nv; i++ ) {
-                vaccinationEntries.add( new VaccinationEntry( is ) );
+            for (long i = 0; i < nv; i++) {
+                vaccinationEntries.add(new VaccinationEntry(is));
             }
         }
     }
-    
-    
+
     public String toString() {
-    	StringBuilder sb = new StringBuilder( "\n*** Covid Certificate contents ***"
-      + "\nfirstName=" + firstName
-      + "\nlastName=" + lastName
-      + "\nstandardName=" + standardName
-      + "\ndateOfBirth=" + dateOfBirth );
-      for( VaccinationEntry ve: vaccinationEntries ) {
-          sb.append( "\n" ).append( ve );
-      }
-      return sb.toString();
+        StringBuilder sb = new StringBuilder("\n*** Covid Certificate contents ***" + "\nfirstName=" + firstName
+                + "\nlastName=" + lastName + "\nstandardName=" + standardName + "\ndateOfBirth=" + dateOfBirth);
+        for (VaccinationEntry ve : vaccinationEntries) {
+            sb.append("\n").append(ve);
+        }
+        return sb.toString();
     }
 }

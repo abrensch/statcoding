@@ -2,10 +2,12 @@ package btools.statcoding;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * PrefixedBitInputStream reads a data section that is prefixed with version
- * and size information. Useful to decode a data structure that is expected to evolve.
+ * PrefixedBitInputStream reads a data section that is prefixed with version and
+ * size information. Useful to decode a data structure that is expected to
+ * evolve.
  */
 public class PrefixedBitInputStream extends BitInputStream {
 
@@ -13,15 +15,16 @@ public class PrefixedBitInputStream extends BitInputStream {
     private long minorVersion;
 
     public PrefixedBitInputStream(BitInputStream sourceIn, long maxMajorVersion) throws IOException {
-        super(null);
+        super((InputStream) null);
         majorVersion = sourceIn.decodeUnsignedVarBits(0);
         minorVersion = sourceIn.decodeUnsignedVarBits(0);
-        if ( majorVersion > maxMajorVersion ) {
-            throw new IllegalArgumentException( "unknown major version " + majorVersion + " (max="  + maxMajorVersion + ")" );
+        if (majorVersion > maxMajorVersion) {
+            throw new IllegalArgumentException(
+                    "unknown major version " + majorVersion + " (max=" + maxMajorVersion + ")");
         }
-        byte[] ab = new byte[(int)sourceIn.decodeUnsignedVarBits(5)];
+        byte[] ab = new byte[(int) sourceIn.decodeUnsignedVarBits(5)];
         sourceIn.readFully(ab);
-        in = new ByteArrayInputStream( ab );
+        in = new ByteArrayInputStream(ab);
     }
 
     public long getMajorVersion() {

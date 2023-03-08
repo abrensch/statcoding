@@ -29,24 +29,24 @@ public class VaccinationEntry {
     /**
      * Encode this vaccination-entry to a bit-stream
      */
-    public void writeToStream( BitOutputStream bos ) throws IOException {
-        try( PrefixedBitOutputStream os = new PrefixedBitOutputStream( bos, majorVersion, minorVersion ) ) {
-            os.encodeString( certificateID );
-            os.encodeString( country);
-            os.encodeString( vaccinationDate );
-            os.encodeString( certificateIssuer );
-            os.encodeString( targetDesease );
-            os.encodeString( manufacturer );
-            os.encodeString( vaccineName );
-            os.encodeString( vaccineType );
+    public void writeToStream(BitOutputStream bos) throws IOException {
+        try (PrefixedBitOutputStream os = new PrefixedBitOutputStream(bos, majorVersion, minorVersion)) {
+            os.encodeString(certificateID);
+            os.encodeString(country);
+            os.encodeString(vaccinationDate);
+            os.encodeString(certificateIssuer);
+            os.encodeString(targetDesease);
+            os.encodeString(manufacturer);
+            os.encodeString(vaccineName);
+            os.encodeString(vaccineType);
         }
     }
 
     /**
      * Decode a vaccination-entry from a bit-stream
      */
-    public VaccinationEntry( BitInputStream bis ) throws IOException {
-        try( PrefixedBitInputStream is = new PrefixedBitInputStream( bis, majorVersion ) ) {
+    public VaccinationEntry(BitInputStream bis) throws IOException {
+        try (PrefixedBitInputStream is = new PrefixedBitInputStream(bis, majorVersion)) {
             certificateID = is.decodeString();
             country = is.decodeString();
             vaccinationDate = is.decodeString();
@@ -59,14 +59,9 @@ public class VaccinationEntry {
     }
 
     public String toString() {
-    	return "\n*** Vaccination entry ***"
-      + "\ncertificateID=" + certificateID
-      + "\ncountry=" + country
-      + "\nvaccinationDate=" + vaccinationDate
-      + "\ncertificateIssuer=" + certificateIssuer
-      + "\ntargetDesease=" + targetDesease
-      + "\nmanufacturer=" + manufacturer
-      + "\nvaccineName=" + vaccineName
-      + "\nvaccineType=" + vaccineType;
+        return "\n*** Vaccination entry ***" + "\ncertificateID=" + certificateID + "\ncountry=" + country
+                + "\nvaccinationDate=" + vaccinationDate + "\ncertificateIssuer=" + certificateIssuer
+                + "\ntargetDesease=" + targetDesease + "\nmanufacturer=" + manufacturer + "\nvaccineName=" + vaccineName
+                + "\nvaccineType=" + vaccineType;
     }
 }

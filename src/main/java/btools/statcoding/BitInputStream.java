@@ -1,5 +1,6 @@
 package btools.statcoding;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -8,15 +9,14 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * BitInputStream is a replacement for java.io.DataInputStream extending it by
- * bitwise operations suitable for statistical decoding.
- * <br>
+ * bitwise operations suitable for statistical decoding. <br>
  * It automatically re-aligns to byte-alignment as soon as any of the methods of
- * InputStream or DataOutput or its own method 'decodeVarBytes' is called.
- * <br>
+ * InputStream or DataOutput or its own method 'decodeVarBytes' is called. <br>
  * Please note that while doing bitwise operations, BitInputStream buffers up to
  * 8 bytes from the underlying stream and has a somewhat sloppy EOF detection,
- * so please do fully re-align (see {@link BitOutputStream#writeSyncBlock(long)})
- * after bitwise operations for compliant EOF behavior.
+ * so please do fully re-align (see
+ * {@link BitOutputStream#writeSyncBlock(long)}) after bitwise operations for
+ * compliant EOF behavior.
  */
 public class BitInputStream extends InputStream implements DataInput {
 
@@ -27,8 +27,22 @@ public class BitInputStream extends InputStream implements DataInput {
     protected InputStream in;
     private DataInputStream dis; // created lazily if needed
 
+    /**
+     * Construct a BitInputStream for the underlying InputStream.
+     *
+     * @param is the underlying stream to read from
+     */
     public BitInputStream(InputStream is) {
         in = is;
+    }
+
+    /**
+     * Construct a BitInputStream for the given Byte-Array.
+     *
+     * @param is the underlying stream to read from
+     */
+    public BitInputStream(byte[] ab) throws IOException {
+        in = new ByteArrayInputStream(ab);
     }
 
     private void fillBuffer() throws IOException {
@@ -47,7 +61,14 @@ public class BitInputStream extends InputStream implements DataInput {
         }
     }
 
-    public boolean hasMoreRealBits() {
+    /**
+     * A BitInputStream spits out up to 256 dummy-0-bits after EOF. This method
+     * tells if we are still reading real data bits.
+     *
+     * @return true if the next bit is stll real.
+     */
+    public boolean hasMoreRealBits() throws IOException {
+        fillBuffer();
         return eofBits == 0 || bits > eofBits;
     }
 
@@ -252,20 +273,19 @@ public class BitInputStream extends InputStream implements DataInput {
     public final String decodeString() throws IOException {
 
         long byteLength = decodeVarBytes();
-        if ( byteLength == 0L ) {
+        if (byteLength == 0L) {
             return "";
         }
-        if ( byteLength == -1L ) {
+        if (byteLength == -1L) {
             return null;
         }
-        if ( byteLength < 0L || byteLength > 0x7FFFFFFFL ) {
-            throw new IllegalArgumentException( "decodeString: byeLength out of range: " + byteLength );
+        if (byteLength < 0L || byteLength > 0x7FFFFFFFL) {
+            throw new IllegalArgumentException("decodeString: byeLength out of range: " + byteLength);
         }
-        byte[] ab = new byte[(int)byteLength];
+        byte[] ab = new byte[(int) byteLength];
         readFully(ab);
-        return new String( ab, StandardCharsets.UTF_8 );
+        return new String(ab, StandardCharsets.UTF_8);
     }
-
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****
@@ -386,9 +406,9 @@ public class BitInputStream extends InputStream implements DataInput {
      * {@link BitOutputStream#encodeUniqueSortedArray( long[], int, int )} <br>
      * See also {@link #decodeUniqueSortedArray()}
      *
-     * @param values        the array to decode into
-     * @param offset        position in this array where to start
-     * @param size          number of values to decode
+     * @param values the array to decode into
+     * @param offset position in this array where to start
+     * @param size   number of values to decode
      */
     public void decodeUniqueSortedArray(long[] values, int offset, int size) throws IOException {
         if (size > 0) {
@@ -446,11 +466,9 @@ public class BitInputStream extends InputStream implements DataInput {
 
     /**
      * Decode some bits according to the given lengthArray (which is expected to be
-     * 2^n in size, with n <= 32)
-     * <br>
+     * 2^n in size, with n <= 32) <br>
      * This is very special logic for speeding up huffman decoding based on a lookup
-     * table.
-     * <br>
+     * table. <br>
      * But could be used for speeding up other var-length codes as well.
      *
      * @param lengthArray an array telling how much bits to consume for the observed
