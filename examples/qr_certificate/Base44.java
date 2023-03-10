@@ -4,9 +4,16 @@ import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 
 /**
- * Probably not Base44 in any defined sense, but encodes about 5,5 bits per
- * character of the set of 45 Characters for which QR codes have a 11 bit for 2
- * encoding (we exclude the space-character for practical reasons)
+ * Probably not "Base44" in any defined sense, but encodes about 5,5 bits per
+ * character of the alphanumeric-character set of QR-Codes. This character
+ * set includes 45 characters, but we exclude the space-character for practical reasons,
+ * so 44 characters left for us to encode our data with.
+ *
+ * This is an "inverse use" of decodeBounded/encodeBounded, because "decodeBounded"
+ * is used for encoding and vice versa.
+ *
+ * Please note that an encode-decode cycle most probably grows the message
+ * by one 0-byte, because there's no dedicated end-of-message logic
  */
 public class Base44 {
 

@@ -1,28 +1,15 @@
 QR Code carrying a Digitial Certificate
 =======================================
 
-This is a no-frills version of a digital certificate. The example
-imitates the "European Digital Covid Certificate" (EU DCC), but in plain
-vanilla and without the dependency-hell.
+This is a no-frills version of a digital certificate. The demo imitates the "European Digital Covid Certificate" (EU-DCC). Following picture shows on the left side an official EU-DCC QR-Code. On the right side is the exact same payload and digital signature, encoded with the help of the statcoding library to about 2/3 the size of the EU-DCC:
 
 <img src="https://raw.githubusercontent.com/abrensch/statcoding/main/examples/qr_certificate/example_qr_codes.png" width="100%"/>
 
-But please think of any piece of structured information that is to be
-packed into a QR code together with a digital signature (could be
-event-tickets, medical documents, Proof of ability, ...)
+For a wonderful description of the structure and contents of the EU-DCC see <https://www.bartwolff.com/Blog/2021/08/08/decoding-the-eu-digital-covid-certificate-qr-code>. They use a "binary JSON Twin" to encode the payload, but shorten the attribute names to 2 characters to save space. This is an indication that storing attribute names in a QR code is not the best idea.
 
-To compare with the EU DCC reference implemenation see https://github.com/diggsweden/dgc-java
-They use a "binary JSON Twin" to encode the payload, but they shorten the attribute names
-to 2 characters to save space. This is an indication that it is a stupid idea to store
-meta data in QR codes.
+Our demo uses a data structure that does not contain any meta information, but still allows schema evolution by prefixing version and size information before each data record.
 
-Our example uses a data structure that does not contain metadata, but still allows
-schema evolution by prefixing version and size information before each data record.
-
-The digital signature uses 256 Bit ECDSA (same for EU DCC), using about 70 bytes for the signature.
-
-Please note that the encoded result does not contain a certificate chain (Would
-be challenging to put a certificate chain into a QR code..)
+You see that our QR code is about 250 bytes in size, whereof 72 bytes account for the signature. Maximum QR code capacity is 2.956 Byte, so there's plenty of space to store all kinds of digitally signed documents in QR codes, opening up many possible applications.
 
 
 Example Usage
@@ -54,7 +41,7 @@ Example Usage
 
    java DecodeCertificate HC7:...
 
-Example code does not include QR-Code generation or parsing. Please use
+Our demo does not include QR-Code generation or parsing. Please use
 
-- Libre-Office to create QR-Codes (select -> Einfuegen -> (OLE-)Objekt -> QR-Code)
+- Libre-Office-Writer to create QR-Codes (select -> Einfuegen -> (OLE-)Objekt -> QR-Code)
 - your Phone to scan QR-Codes

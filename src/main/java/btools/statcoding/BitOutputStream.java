@@ -230,29 +230,6 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         return value < 0L ? 1L | ((-value - 1L) << 1) | 1 : value << 1;
     }
 
-    /**
-     * encodeString() is pretty much the same as writeUTF. Except that is uses
-     * a variable length size header (thus no 64k limit) and is able to encode
-     * null references
-     *
-     * @param value the String to encode (my be null)
-     *
-     * @see BitInputStream#decodeString
-     */
-    public final void encodeString(String value) throws IOException {
-        if ( value == null ) {
-            encodeVarBytes( -1L );
-            return;
-        }
-        if ( value.isEmpty() ) {
-            encodeVarBytes( 0L );
-            return;
-        }
-        byte[] ab = value.getBytes(StandardCharsets.UTF_8);
-        encodeVarBytes( ab.length );
-        write( ab );
-    }
-
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****
@@ -378,6 +355,56 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             im <<= 1;
         }
     }
+
+    /**
+     * encodeString() is similar writeUTF. But can
+     * encode more values (null-references and String >= 64k)
+     * and is a little bit more compact for very short
+     * Strings and for Strings with certail restrictes character sets
+     * (numeric, numeric plus /,.- , ascii)
+     *
+     * @param value the String to encode (may be null)
+     *
+     * @see BitInputStream#decodeString
+     */
+    public final void encodeString(String value) throws IOException {
+        if ( value == null ) {
+            encodeUnsignedVarBits( 0L, 1 );
+            return;
+        }
+        if ( value.isEmpty() ) {
+            encodeUnsignedVarBits( 1L, 1 );
+            return;
+        }
+        // find the smallest character range that fits
+        int type = 0;
+        for( int j=0; j<value.length(); j++ ) {
+            int c = value.charAt( j );
+            while( type < 3 &&  ( c < charRangeLow[type] || c >= charRangeHigh[type] ) ) {
+                type++;
+            }
+        }
+        encodeUnsignedVarBits( type + 2, 1 );
+        if ( type < 3 ) {
+            // encode a limited charset ( numeric, numeric+, ascii )
+            encodeUnsignedVarBits( value.length() - 1, 3 );
+            long min = charRangeLow[type];
+            long range = charRangeHigh[type]-min-1;
+            for( int j=0; j<value.length(); j++ ) {
+                int c = value.charAt(j);
+                encodeBounded(range, c - min);
+            }
+            return;
+        }
+        // encode UTF8
+        byte[] ab = value.getBytes(StandardCharsets.UTF_8);
+        encodeUnsignedVarBits( ab.length - 1, 3 );
+        write( ab );
+    }
+
+    // known character ranges: numeric, numeric+, ascii
+    private static int[] charRangeLow = { 0x30, 0x2c, 0x20 };
+    private static int[] charRangeHigh = { 0x3a, 0x3a, 0x80 };
 
     /**
      * Encode a positive long-array making use of the fact that it is sorted and

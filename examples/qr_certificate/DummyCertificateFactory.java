@@ -4,21 +4,28 @@
 public class DummyCertificateFactory {
 
     public static CovidCertificate getInstance() {
+
         CovidCertificate c = new CovidCertificate();
-        c.firstName = "Dagobert";
-        c.lastName = "Duck";
-        c.standardName = "DAGOBERT DUCK";
-        c.dateOfBirth = "1958-06-08";
+        c.country = "NL";
+        c.timeIssued = 1621755800L;
+        c.timeValidUntil = 1621755800L;
+        c.familyName = "Achternaam";
+        c.familyNameT = "ACHTERNAAM";
+        c.givenName = "Voornaam";
+        c.givenNameT = "VOORNAAM";
+        c.dateOfBirth = "1963-01-01";
 
         VaccinationEntry e = new VaccinationEntry();
-        e.certificateID = java.util.UUID.randomUUID().toString();
-        e.country = "DE";
-        e.vaccinationDate = "2022-02-13";
-        e.certificateIssuer = "Robert Koch Institut";
-        e.targetDesease = "Covid19";
-        e.manufacturer = "Biontech";
-        e.vaccineName = "Comirnaty";
-        e.vaccineType = "SARS-CoV-2 mNA vaccine";
+        e.targetDesease = "840539006";
+        e.vaccineType = "1119305005";
+        e.vaccineProduct = "CVnCoV";
+        e.manufacturer = "ORG-100032020";
+        e.doseNumber = 1L;
+        e.seriesDoses = 6L;
+        e.vaccinationDate = "2021-02-18";
+        e.vaccinationCountry = "GR";
+        e.certificateIssuer = "Ministry of Health Welfare and Sport";
+        e.certificateID = "urn:uvci:01:NL:74827831729545bba1c279f592f2488a";
 
         c.vaccinationEntries.add(e);
         return c;

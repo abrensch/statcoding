@@ -7,17 +7,22 @@ import btools.statcoding.PrefixedBitInputStream;
 import btools.statcoding.PrefixedBitOutputStream;
 
 /**
- * Container for something like the DCC (European Digital Covid Certificate)
+ * Container for something like the EU-DCC (European Digital Covid Certificate)
  */
 public class CovidCertificate {
 
     public static long majorVersion = 1;
     public static long minorVersion = 1;
 
-    public String firstName;
-    public String lastName;
-    public String standardName;
+    public String country;
+    public long timeIssued;
+    public long timeValidUntil;
+    public String familyName;
+    public String familyNameT;
+    public String givenName;
+    public String givenNameT;
     public String dateOfBirth;
+
 
     public final List<VaccinationEntry> vaccinationEntries = new ArrayList<>();
 
@@ -29,11 +34,15 @@ public class CovidCertificate {
      */
     public void writeToStream(BitOutputStream bos) throws IOException {
         try (PrefixedBitOutputStream os = new PrefixedBitOutputStream(bos, majorVersion, minorVersion)) {
-            os.encodeString(firstName);
-            os.encodeString(lastName);
-            os.encodeString(standardName);
+            os.encodeString(country);
+            os.encodeSignedVarBits(timeIssued,32);
+            os.encodeSignedVarBits(timeValidUntil,32);
+            os.encodeString(familyName);
+            os.encodeString(familyNameT);
+            os.encodeString(givenName);
+            os.encodeString(givenNameT);
             os.encodeString(dateOfBirth);
-            os.encodeVarBytes(vaccinationEntries.size());
+            os.encodeUnsignedVarBits(vaccinationEntries.size(),1);
             for (VaccinationEntry ve : vaccinationEntries) {
                 ve.writeToStream(os);
             }
@@ -45,20 +54,32 @@ public class CovidCertificate {
      */
     public CovidCertificate(BitInputStream bis) throws IOException {
         try (PrefixedBitInputStream is = new PrefixedBitInputStream(bis, majorVersion)) {
-            firstName = is.decodeString();
-            lastName = is.decodeString();
-            standardName = is.decodeString();
+            country = is.decodeString();
+            timeIssued = is.decodeSignedVarBits(32);
+            timeValidUntil = is.decodeSignedVarBits(32);
+            familyName = is.decodeString();
+            familyNameT = is.decodeString();
+            givenName = is.decodeString();
+            givenNameT = is.decodeString();
             dateOfBirth = is.decodeString();
-            long nv = is.decodeVarBytes();
+            long nv = is.decodeUnsignedVarBits(1);
             for (long i = 0; i < nv; i++) {
                 vaccinationEntries.add(new VaccinationEntry(is));
             }
         }
     }
 
+    @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("\n*** Covid Certificate contents ***" + "\nfirstName=" + firstName
-                + "\nlastName=" + lastName + "\nstandardName=" + standardName + "\ndateOfBirth=" + dateOfBirth);
+        StringBuilder sb = new StringBuilder("\n*** Covid Certificate contents ***"
+        + "\ncountry=" + country
+        + "\ntimeIssued=" + new Date(1000L*timeIssued)
+        + "\ntimeValidUntil=" + new Date(1000L*timeValidUntil)
+        + "\nfamilyName=" + familyName
+        + "\nfamilyNameT=" + familyNameT
+        + "\ngivenName=" + givenName
+        + "\ngivenNameT=" + givenNameT
+        + "\ndateOfBirth=" + dateOfBirth);
         for (VaccinationEntry ve : vaccinationEntries) {
             sb.append("\n").append(ve);
         }

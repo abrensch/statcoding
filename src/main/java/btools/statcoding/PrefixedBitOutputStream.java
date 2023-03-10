@@ -30,14 +30,17 @@ public class PrefixedBitOutputStream extends BitOutputStream {
         this.targetOut = targetOut;
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
+        if ( majorVersion < 1 || minorVersion < 1 ) {
+            throw new IllegalArgumentException( "version numbers must be >= 1 : " + majorVersion + "/" + minorVersion );
+        }
     }
 
     @Override
     public void close() throws IOException {
         super.close();
         ByteArrayOutputStream bos = (ByteArrayOutputStream) out;
-        targetOut.encodeUnsignedVarBits(majorVersion, 0);
-        targetOut.encodeUnsignedVarBits(minorVersion, 0);
+        targetOut.encodeUnsignedVarBits(majorVersion-1, 0);
+        targetOut.encodeUnsignedVarBits(minorVersion-1, 0);
         targetOut.encodeUnsignedVarBits(bos.size(), 5);
         bos.writeTo(targetOut);
     }

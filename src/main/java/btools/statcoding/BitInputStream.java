@@ -265,27 +265,6 @@ public class BitInputStream extends InputStream implements DataInput {
         return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
     }
 
-    /**
-     * Decoding twin to {@link BitOutputStream#encodeString( String )}
-     *
-     * @return the decoded long value
-     */
-    public final String decodeString() throws IOException {
-
-        long byteLength = decodeVarBytes();
-        if (byteLength == 0L) {
-            return "";
-        }
-        if (byteLength == -1L) {
-            return null;
-        }
-        if (byteLength < 0L || byteLength > 0x7FFFFFFFL) {
-            throw new IllegalArgumentException("decodeString: byeLength out of range: " + byteLength);
-        }
-        byte[] ab = new byte[(int) byteLength];
-        readFully(ab);
-        return new String(ab, StandardCharsets.UTF_8);
-    }
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****
@@ -388,6 +367,46 @@ public class BitInputStream extends InputStream implements DataInput {
         }
         return value;
     }
+
+    /**
+     * Decoding twin to {@link BitOutputStream#encodeString( String )}
+     *
+     * @return the decoded String (may be null)
+     */
+    public final String decodeString() throws IOException {
+
+        long classifier = decodeUnsignedVarBits( 1 );
+        if (classifier == 0L) {
+            return null;
+        }
+        if (classifier == 1L) {
+            return "";
+        }
+        int type = (int)(classifier-2L);
+        int n = 1 + (int)decodeUnsignedVarBits( 3 );
+        if ( type < 3 ) {
+            // encode a limited charset ( numeric, numeric+, ascii )
+            long min = charRangeLow[type];
+            long range = charRangeHigh[type]-min-1;
+            char[] ac = new char[n];
+            for( int j=0; j<n; j++ ) {
+                long c = decodeBounded( range ) + min;
+                ac[j] = (char)c;
+            }
+            return new String( ac );
+        }
+        if ( type == 3 ) {
+        	  // decode UTF-8
+            byte[] ab = new byte[n];
+            readFully(ab);
+            return new String(ab, StandardCharsets.UTF_8);
+        }
+        throw new IllegalArgumentException( "unknown string classifier: " + classifier );
+    }
+
+    // known character ranges: numeric, numeric+, ascii
+    private static int[] charRangeLow = { 0x30, 0x2c, 0x20 };
+    private static int[] charRangeHigh = { 0x3a, 0x3a, 0x80 };
 
     /**
      * Decoding twin to {@link BitOutputStream#encodeUniqueSortedArray( long[] )}

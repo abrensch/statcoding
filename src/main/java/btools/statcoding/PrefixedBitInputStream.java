@@ -16,8 +16,8 @@ public class PrefixedBitInputStream extends BitInputStream {
 
     public PrefixedBitInputStream(BitInputStream sourceIn, long maxMajorVersion) throws IOException {
         super((InputStream) null);
-        majorVersion = sourceIn.decodeUnsignedVarBits(0);
-        minorVersion = sourceIn.decodeUnsignedVarBits(0);
+        majorVersion = sourceIn.decodeUnsignedVarBits(0)+1;
+        minorVersion = sourceIn.decodeUnsignedVarBits(0)+1;
         if (majorVersion > maxMajorVersion) {
             throw new IllegalArgumentException(
                     "unknown major version " + majorVersion + " (max=" + maxMajorVersion + ")");
