@@ -19,6 +19,11 @@ Usage
 
    mvn install
 
+   Recommended use is to just copy the java-sources + unit-tests you are actually using into your project.
+   While in beta, I will not upload the statcoding libraray to maven-central, and reserve the right to change
+   the binary format created by the library in an imcompatible way.
+
+
 Examples
 --------
 
