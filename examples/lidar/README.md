@@ -41,7 +41,7 @@ Example Usage
    https://gds.hessen.de -> DOWNLOADCENTER -> 3D-Daten -> Digitales Geländemodell (DGM1) -> Hochtaunuskreis -> "Bad Homburg v.d.Höhe - DGM1" 
 
 
- - place it in the current working directory (examples/lidar)
+ - place the ZIP in the current working directory (examples/lidar)
    
 
  - recode it to a compact format:
