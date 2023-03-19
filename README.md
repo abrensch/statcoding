@@ -29,11 +29,11 @@ Usage
 Examples
 --------
 
- -  Example Lidar data processing:  [`examples/lidar/`](examples/lidar/).
+ -  Example Lidar data processing:  [`examples/lidar/`](examples/lidar/)
 
- -  Example QR code certificate:  [`examples/qr_certificate/`](examples/qr_certificate/).
+ -  Example QR code certificate:  [`examples/qr_certificate/`](examples/qr_certificate/)
 
- -  Example simple image encoding:  [`examples/images/`](examples/images/).
+ -  Example simple image encoding:  [`examples/images/`](examples/images/)
 
 
 Release History
