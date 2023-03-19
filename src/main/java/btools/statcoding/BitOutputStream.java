@@ -436,7 +436,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      */
     public void encodeUniqueSortedArray(long[] values, int offset, int size) throws IOException {
         if (size > 0) {
-            long max = values[size - 1];
+            long max = values[offset + size - 1];
             int nBits = 0;
             while ((max >>>= 1) != 0L) {
                 nBits++;
