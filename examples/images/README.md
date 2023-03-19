@@ -14,11 +14,11 @@ Usage
 ```
      Windows:
        cd examples\images
-       set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
+       set CLASSPATH=..\..\target\statcoding-0.9.0-SNAPSHOT.jar;.
 
      Linux:
        cd examples/images
-       export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
+       export CLASSPATH=../../target/statcoding-0.9.0-SNAPSHOT.jar:.
 ``` 
 
  - Compile:

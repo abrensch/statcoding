@@ -15,12 +15,14 @@ Arithmetic encoding was not included in BRouter, just added here for completenes
 Usage
 -----
 
+ - Java 8 or higher
+
  - Compile the library:
 
    mvn install
 
    Recommended use is to just copy the java-sources + unit-tests you are actually using into your project.
-   While in beta, I will not upload the statcoding libraray to maven-central, and reserve the right to change
+   While in beta, I will not upload the statcoding library to maven-central, and reserve the right to change
    the binary format created by the library in an imcompatible way.
 
 
@@ -38,3 +40,5 @@ Release History
 ---------------
 
 **2022.11.27** Version 0.0.1
+
+**2023.03.19** Version 0.9.0

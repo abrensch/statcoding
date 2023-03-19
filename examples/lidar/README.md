@@ -24,11 +24,11 @@ Example Usage
 ```
      Windows:
        cd examples\lidar
-       set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
+       set CLASSPATH=..\..\target\statcoding-0.9.0-SNAPSHOT.jar;.
 
      Linux:
        cd examples/lidar
-       export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
+       export CLASSPATH=../../target/statcoding-0.9.0-SNAPSHOT.jar:.
 ``` 
 
  - Compile:
@@ -36,9 +36,12 @@ Example Usage
    javac *.java
  
 
- - get some 1m Lidar ground model data (DGM1) for Bad Homburg in the current directory:
+ - get some 1m Lidar ground model data (DGM1) for Bad Homburg by navigating:
 
-   wget https://gds.hessen.de/downloadcenter/20230219/3D-Daten/Digitales%20Gel%C3%A4ndemodell%20(DGM1)/Hochtaunuskreis/Bad%20Homburg%20v.d.H%C3%B6he%20-%20DGM1.zip
+   https://gds.hessen.de -> DOWNLOADCENTER -> 3D-Daten -> Digitales Geländemodell (DGM1) -> Hochtaunuskreis -> "Bad Homburg v.d.Höhe - DGM1" 
+
+
+ - place it in the current working directory (examples/lidar)
    
 
  - recode it to a compact format:

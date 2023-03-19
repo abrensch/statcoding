@@ -20,11 +20,11 @@ Example Usage
 ```
      Windows:
        cd examples\qr_certificate
-       set CLASSPATH=..\..\target\statcoding-0.0.1-SNAPSHOT.jar;.
+       set CLASSPATH=..\..\target\statcoding-0.9.0-SNAPSHOT.jar;.
 
      Linux:
        cd examples/qr_certificate
-       export CLASSPATH=../../target/statcoding-0.0.1-SNAPSHOT.jar:.
+       export CLASSPATH=../../target/statcoding-0.9.0-SNAPSHOT.jar:.
 ``` 
 
  - Compile:
