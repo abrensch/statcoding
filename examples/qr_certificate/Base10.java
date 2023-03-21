@@ -4,10 +4,8 @@ import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 
 /**
- * Probably not "Base44" in any defined sense, but encodes about 5,5 bits per
- * character of the alphanumeric-character set of QR-Codes. This character
- * set includes 45 characters, but we exclude the space-character for practical reasons,
- * so 44 characters left for us to encode our data with.
+ * Probably not "Base10" in any defined sense, but encodes about 3,3 bits per
+ * digit of the numeric-character set of QR-Codes.
  *
  * This is an "inverse use" of decodeBounded/encodeBounded, because "decodeBounded"
  * is used for encoding and vice versa.
@@ -15,9 +13,9 @@ import btools.statcoding.BitOutputStream;
  * Please note that an encode-decode cycle most probably grows the message
  * by one 0-byte, because there's no dedicated end-of-message logic
  */
-public class Base44 {
+public class Base10 {
 
-    public final static String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$%*+-/.:";
+    public final static String chars = "0123456789";
 
     public static void encode(StringBuilder sb, byte[] ab) throws IOException {
         try (BitInputStream bis = new BitInputStream(ab)) {
@@ -34,7 +32,7 @@ public class Base44 {
                 char c = text.charAt(i);
                 int idx = chars.indexOf(c);
                 if (idx < 0) {
-                    throw new IllegalArgumentException("not a base44 char: " + c);
+                    throw new IllegalArgumentException("not a base10 char: " + c);
                 }
                 bos.encodeBounded(chars.length() - 1, idx);
             }

@@ -39,7 +39,7 @@ Example Usage
 
  - decode a certificate and verify signature (place above output or a QR-Code-Scan as the argument):
 
-   java DecodeCertificate HC7:...
+   java DecodeCertificate 010107...
 
 Our demo does not include QR-Code generation or parsing. Please use
 

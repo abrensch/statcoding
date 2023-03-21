@@ -32,8 +32,8 @@ public class EncodeDummyCertificate {
         }
         byte[] ab = baos.toByteArray();
 
-        StringBuilder sb = new StringBuilder("HC7:"); // EU's DCC is HC1: ...
-        Base44.encode(sb, ab);
+        StringBuilder sb = new StringBuilder("010107"); // EU's DCC prefix is HC1: ...
+        Base10.encode(sb, ab);
         System.out.println(sb.toString());
     }
 }

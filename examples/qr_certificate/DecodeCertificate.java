@@ -8,11 +8,11 @@ public class DecodeCertificate {
 
     public static void main(String[] args) throws Exception {
 
-        if (args.length != 1 || !args[0].startsWith("HC7:")) {
-            System.out.println("usage:\njava DecodeCertificate HC7:xxx...");
+        if (args.length != 1 || !args[0].startsWith("010107")) {
+            System.out.println("usage:\njava DecodeCertificate 010107...");
             return;
         }
-        byte[] ab = Base44.decode(args[0], 4);
+        byte[] ab = Base10.decode(args[0], 6);
         CovidCertificate c = null;
 
         try (BitInputStream bis = new BitInputStream(ab)) {
