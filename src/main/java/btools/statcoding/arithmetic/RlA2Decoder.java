@@ -4,6 +4,11 @@ import java.io.IOException;
 
 import btools.statcoding.BitInputStream;
 
+/**
+ * Decoding twin to RlA2Encoder
+ *
+ * @see RlA2Encoder
+ */
 public class RlA2Decoder {
 
     private long lastValue;

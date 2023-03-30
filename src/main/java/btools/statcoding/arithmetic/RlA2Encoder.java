@@ -4,6 +4,18 @@ import java.io.IOException;
 
 import btools.statcoding.BitOutputStream;
 
+/**
+ * Encoder for 2nd-order arithmetic encoding + run-length-escape.
+ *
+ * 2nd-order means that statistics are counted separately for each
+ * preceding symbol, thus taking neighbor correlations into account.
+ *
+ * RlA2Encoder is adapted for 2-pass encoding (pass1: collect stats, pass2: encode).
+ *
+ * See the image example for example usage.
+ *
+ * @see RlA2Decoder
+ */
 public class RlA2Encoder {
 
     private final long maxValue;

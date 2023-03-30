@@ -17,13 +17,13 @@ Usage
 
  - Java 8 or higher
 
- - Compile the library:
+ - Compile the library using Maven:
 
    mvn install
 
    Recommended use is to just copy the java-sources + unit-tests you are actually using into your project.
    While in beta, I will not upload the statcoding library to maven-central, and reserve the right to change
-   the binary format created by the library in an imcompatible way.
+   the binary format created by the library in an incompatible way.
 
 
 Examples
