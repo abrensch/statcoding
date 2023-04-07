@@ -17,18 +17,12 @@ public class DecodeCertificate {
 
         try (BitInputStream bis = new BitInputStream(ab)) {
 
-            int payloadSize = (int) bis.decodeVarBytes();
-            byte[] payloadData = new byte[payloadSize];
-            bis.readFully(payloadData);
-
+            byte[] payloadData = bis.decodeSizedByteArray();
             try (BitInputStream isPayload = new BitInputStream(payloadData)) {
                 c = new CovidCertificate(isPayload);
             }
 
-            int signatureSize = (int) bis.decodeVarBytes();
-            byte[] signatureData = new byte[signatureSize];
-            bis.readFully(signatureData);
-
+            byte[] signatureData = bis.decodeSizedByteArray();
             boolean signatureValid = new SignTool().verifySignature(payloadData, signatureData);
             System.out.println("Signature-Check: " + (signatureValid ? "valid" : "********** INVALID !! ***********"));
             System.out.println(c);

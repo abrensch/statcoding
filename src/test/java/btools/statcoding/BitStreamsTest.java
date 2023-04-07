@@ -64,6 +64,7 @@ public class BitStreamsTest extends TestCase {
     public void testVarBytes() throws IOException {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] ab = new byte[] { 7,77, -33 };
 
         try (BitOutputStream bos = new BitOutputStream(baos)) {
             for (long l : testLongs) {
@@ -73,6 +74,8 @@ public class BitStreamsTest extends TestCase {
             // test re-alignment
             bos.encodeSignedVarBits(1523L, 3);
             bos.encodeVarBytes(4711L);
+            bos.encodeSizedByteArray(null);
+            bos.encodeSizedByteArray(ab);
         }
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         try (BitInputStream bis = new BitInputStream(bais)) {
@@ -83,6 +86,8 @@ public class BitStreamsTest extends TestCase {
             assertEquals(bis.decodeVarBytes(), Long.MIN_VALUE);
             assertEquals(bis.decodeSignedVarBits(3), 1523L);
             assertEquals(bis.decodeVarBytes(), 4711L);
+            assertNull( bis.decodeSizedByteArray() );
+            assertTrue(Arrays.equals(ab, bis.decodeSizedByteArray()));
         }
     }
 

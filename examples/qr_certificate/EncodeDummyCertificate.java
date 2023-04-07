@@ -25,10 +25,8 @@ public class EncodeDummyCertificate {
 
         baos = new ByteArrayOutputStream();
         try (BitOutputStream bos = new BitOutputStream(baos)) {
-            bos.encodeVarBytes(payloadData.length);
-            bos.write(payloadData);
-            bos.encodeVarBytes(signatureData.length);
-            bos.write(signatureData);
+            bos.encodeSizedByteArray(payloadData);
+            bos.encodeSizedByteArray(signatureData);
         }
         byte[] ab = baos.toByteArray();
 

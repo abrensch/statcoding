@@ -265,6 +265,23 @@ public class BitInputStream extends InputStream implements DataInput {
         return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
     }
 
+    /**
+     * Decoding twin to {@link BitOutputStream#encodeSizedByteArray( bte[] )}
+     *
+     * @return the the decoded byte array
+     */
+    public final byte[] decodeSizedByteArray() throws IOException {
+        long size = decodeVarBytes();
+        if ( size == -1l ) {
+            return null;
+        }
+        if ( size < 0L || size > 0x7fffffffL ) {
+          throw new RuntimeException( "invalid byte-array-size: " + size );
+        }
+        byte[] ab = new byte[(int)size];
+        readFully( ab );
+        return ab;
+    }
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****

@@ -230,6 +230,22 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         return value < 0L ? 1L | ((-value - 1L) << 1) | 1 : value << 1;
     }
 
+    /**
+     * Encode a byte array and prefix it's size.
+     * Size is encoded via encodeVarBytes
+     * Encoding null-references is allowed,
+     * in which case -1 is encoded as the size.
+     *
+     * @param ab the byte array to encode
+     *
+     * @see BitInputStream#decodeSizedByteArray
+     */
+    public final void encodeSizedByteArray(byte[] ab) throws IOException {
+        encodeVarBytes( ab == null ? -1L : ab.length );
+        if ( ab != null ) {
+            write( ab, 0, ab.length );
+        }
+    }
 
     // ***************************************
     // **** Bitwise Fixed Length Encoding ****
