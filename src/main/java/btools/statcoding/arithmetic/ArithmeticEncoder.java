@@ -11,9 +11,10 @@ import btools.statcoding.BitOutputStream;
  * https://github.com/nayuki/Reference-arithmetic-coding
  * <br><br>
  * Please note that this needs exclusive access to the underlying BitOutputStream
- * after the first symbol is encoded. Underlying BitOutputStream should be
- * closed when the arithmetic stream is finished, cause re-aligning the
- * bitstream is not tested.
+ * after the first symbol is encoded. On finish(), the encoder flushes
+ * 32 extra bits in order to allow continues use of the underlying
+ * bitstream. So the minimum size of an AC-section in a combined
+ * bit-stream shpuld be much larger then 32 bits.
  *
  * @see ArithmeticDecoder
  */
@@ -24,6 +25,8 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
 
     // Number of saved underflow bits.
     private long numUnderflow;
+
+    private boolean symbolsCoded;
 
     /**
      * Constructs an arithmetic encoder based on the specified bit stream.
@@ -50,6 +53,7 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
      */
     public void write(long[] stats, int symbol) throws IOException {
         update(stats, symbol);
+        symbolsCoded = true;
     }
 
     /**
@@ -64,7 +68,15 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
      * @throws IOException if an I/O exception occurred
      */
     public void finish() throws IOException {
-        output.encodeBit(true);
+        if ( symbolsCoded ) {
+            output.encodeBit( true );
+            long bitsToWrite = numUnderflow + numStateBits - 1L;
+            while( bitsToWrite > 0)  {
+                long bitsNow = Math.min( bitsToWrite, 8 );
+                output.encodeBits( (int)bitsNow, 0L );
+                bitsToWrite -= bitsNow;
+            }
+        }
     }
 
     protected void shift() throws IOException {
@@ -83,6 +95,7 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
         }
         numUnderflow = 0L;
     }
+
 
     protected void underflow() {
         numUnderflow++;
