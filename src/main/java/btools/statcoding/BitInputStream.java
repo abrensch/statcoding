@@ -53,11 +53,11 @@ public class BitInputStream extends InputStream implements DataInput {
                 b |= (nextByte & 0xffL) << bits;
             } else {
                 eofBits += 8;
+                if (eofBits >= 256) {
+                    throw new RuntimeException("end of stream !");
+                }
             }
             bits += 8;
-        }
-        if (eofBits >= 256) {
-            throw new RuntimeException("end of stream !");
         }
     }
 
@@ -311,10 +311,10 @@ public class BitInputStream extends InputStream implements DataInput {
             return 0L;
         }
         fillBuffer();
-        long mask = 0xffffffffffffffffL >>> (64 - count);
         if (count > bits) {
-            return decodeBounded(mask); // buffer too small, slow fallback
+            return decodeBits( 32 ) | decodeBits(count-32) << 32; // buffer too small, split
         }
+        long mask = 0xffffffffffffffffL >>> (64 - count);
         long value = b & mask;
         b >>>= count;
         bits -= count;
@@ -325,10 +325,50 @@ public class BitInputStream extends InputStream implements DataInput {
     // **** Bitwise Variable Length Decoding ****
     // ******************************************
 
+    private static final int[] riceLookup = new int[256];    
+    static {
+        for ( int i=0; i < 256; i++ ) {
+            int n = 0;
+            while ( (i & (1<<n)) != 0 ) {
+                n++;
+            }
+            riceLookup[i] = n;
+        }
+    }
+
+    /**
+     * Decode a rice code
+     * {@code 0 -> 0}<br>
+     * {@code 10 -> 1}<br>
+     * {@code 110 -> 2}<br>
+     * {@code 1110 -> 3}<br>
+     *
+     * @return the decoded value
+     */
+    public final int decodeRice() throws IOException {
+        int n = 0;
+        for(;;) {
+            fillBuffer();
+            int v = (int) (b & 0xffL);
+            int count = riceLookup[v];
+            n += count;
+            int consumed = count < 8 ? count+1 : 8;
+            b >>>= consumed;
+            bits -= consumed;
+            if ( count < 8 ) {
+                return n;
+            }
+        }
+    }
+
+
     /**
      * Decoding twin to
      * {@link BitOutputStream#encodeUnsignedVarBits( long, int )}<br>
      * <br>
+     *
+     * This is similar to "Exponential Golomb Coding" except
+     * for details of bit inversion and ordering.
      *
      * Please note that {@code noisyBits} must match the value used for encoding.
      *
@@ -336,17 +376,9 @@ public class BitInputStream extends InputStream implements DataInput {
      * @return the decoded value
      */
     public final long decodeUnsignedVarBits(int noisyBits) throws IOException {
-        long noisyValue = decodeBits(noisyBits);
-        long range = 0L;
-        int bits = 0;
-        while (!decodeBit()) {
-            if (range == -1L) {
-                throw new RuntimeException("range overflow");
-            }
-            range = (range << 1) | 1L;
-            bits++;
-        }
-        return noisyValue | ((range + decodeBits(bits)) << noisyBits);
+        int nBits = decodeRice();
+        long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
+        return (range<<noisyBits) + decodeBits(nBits+noisyBits);
     }
 
     /**
@@ -374,13 +406,17 @@ public class BitInputStream extends InputStream implements DataInput {
      * @return the decoded value
      */
     public final long decodeBounded(long max) throws IOException {
-        long value = 0L;
-        long im = 1L; // integer mask
-        while (im > 0 && (value | im) <= max) {
-            if (decodeBit()) {
-                value |= im;
-            }
-            im <<= 1;
+        long m = max;
+        int n = 0;
+        while ((m >>>= 1) != 0L) {
+            n++;
+        }
+        long value = decodeBits( n );
+
+        // read the highest bit only if that would yield a value <= max
+        long im = 1L << n; // integer mask
+        if ((value | im) <= max && decodeBit() ) {
+            value |= im;
         }
         return value;
     }

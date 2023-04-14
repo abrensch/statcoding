@@ -298,11 +298,14 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      * mapping is used:<br>
      * <br>
      *
-     * {@code 1 -> 0}<br>
-     * {@code 01 -> 1} + following 1-bit word ( 1..2 )<br>
-     * {@code 001 -> 3} + following 2-bit word ( 3..6 )<br>
-     * {@code 0001 -> 7} + following 3-bit word ( 7..14 )<br>
+     * {@code 0 -> 0}<br>
+     * {@code 10 -> 1} + following 1-bit word ( 1..2 )<br>
+     * {@code 110 -> 3} + following 2-bit word ( 3..6 )<br>
+     * {@code 1110 -> 7} + following 3-bit word ( 7..14 )<br>
      * etc.
+     *
+     * This is similar to "Exponential Golomb Coding" except
+     * for details of bit inversion and ordering.
      *
      * @param value     the (non-negative) number to encode
      * @param noisyBits the number of lower bits considered noisy
@@ -313,20 +316,16 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         if (value < 0) {
             throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative values: " + value);
         }
-        if (noisyBits > 0) {
-            encodeBits(noisyBits, value);
-            value >>>= noisyBits;
-        }
+        long v = value >>> noisyBits;
         long range = 0L;
         int nBits = 0;
-        while (value > range) {
-            encodeBit(false);
-            value -= range + 1L;
+        while (v > range) {
+            v -= range + 1L;
             range = (range << 1) | 1L;
             nBits++;
         }
-        encodeBit(true);
-        encodeBits(nBits, value);
+        encodeBits(nBits+1,range);
+        encodeBits(nBits+noisyBits, value - (range<<noisyBits) );
     }
 
     /**
