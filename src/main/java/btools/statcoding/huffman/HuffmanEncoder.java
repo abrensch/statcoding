@@ -15,7 +15,7 @@ import btools.statcoding.BitOutputStream;
  * <br>
  * Adapted for 2-pass encoding (pass 1: statistic collection, pass 2: encoding).
  */
-public abstract class HuffmanEncoder {
+public abstract class HuffmanEncoder<V> {
 
     protected BitOutputStream bos;
 
@@ -88,7 +88,7 @@ public abstract class HuffmanEncoder {
             encodeTree(node.child1, bits + 1, code);
             encodeTree(node.child2, bits + 1, code + (1L << bits));
         } else {
-            encodeObjectToStream(node.obj);
+            encodeObjectToStream((V)node.obj);
         }
     }
 
@@ -98,7 +98,7 @@ public abstract class HuffmanEncoder {
      *
      * @param obj the object to encode
      */
-    protected abstract void encodeObjectToStream(Object obj) throws IOException;
+    protected abstract void encodeObjectToStream(V obj) throws IOException;
 
     /**
      * Get a summary on the statistics used to build the current huffman tree as a

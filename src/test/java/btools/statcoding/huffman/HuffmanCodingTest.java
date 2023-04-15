@@ -27,10 +27,10 @@ public class HuffmanCodingTest extends TestCase {
 
         try (BitOutputStream bos = new BitOutputStream(baos)) {
 
-            HuffmanEncoder enc = new HuffmanEncoder() {
+            HuffmanEncoder<Long> enc = new HuffmanEncoder<Long>() {
                 @Override
-                protected void encodeObjectToStream(Object obj) throws IOException {
-                    bos.encodeUnsignedVarBits(((Long) obj).longValue(), 0);
+                protected void encodeObjectToStream(Long lv) throws IOException {
+                    bos.encodeUnsignedVarBits(lv, 0);
                 }
             };
 
@@ -38,7 +38,7 @@ public class HuffmanCodingTest extends TestCase {
                 enc.init(bos);
                 long bits0 = bos.getBitPosition();
                 for (int i = 0; i < nsymbols; i++) {
-                    enc.encodeObject(Long.valueOf(testLongs[i]));
+                    enc.encodeObject(testLongs[i]);
                 }
                 long bits1 = bos.getBitPosition();
                 if ( pass == 2 ) {
@@ -50,16 +50,16 @@ public class HuffmanCodingTest extends TestCase {
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         try (BitInputStream bis = new BitInputStream(bais)) {
 
-            HuffmanDecoder dec = new HuffmanDecoder() {
+            HuffmanDecoder<Long> dec = new HuffmanDecoder<Long>() {
                 @Override
-                protected Object decodeObjectFromStream() throws IOException {
-                    return Long.valueOf(bis.decodeUnsignedVarBits(0));
+                protected Long decodeObjectFromStream() throws IOException {
+                    return bis.decodeUnsignedVarBits(0);
                 }
             };
             dec.init(bis, lookupBits);
 
             for (int i = 0; i < nsymbols; i++) {
-                assertEquals(((Long) dec.decodeObject()).longValue(), testLongs[i]);
+                assertTrue(dec.decodeObject() == testLongs[i]);
             }
         }
     }

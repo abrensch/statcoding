@@ -12,7 +12,7 @@ import btools.statcoding.BitInputStream;
  * This is an abstract class because the method decodeObjectFromStream must be
  * implemented to decode the leafs of the huffman tree from the input stream.
  */
-public abstract class HuffmanDecoder {
+public abstract class HuffmanDecoder<V> {
 
     protected BitInputStream bis;
 
@@ -27,7 +27,7 @@ public abstract class HuffmanDecoder {
      *
      * @return obj the decoded object
      */
-    public final Object decodeObject() throws IOException {
+    public final V decodeObject() throws IOException {
         int idx = bis.decodeLookupIndex(lengths);
         Object node = subtrees[idx];
         while (node instanceof TreeNode) {
@@ -35,7 +35,7 @@ public abstract class HuffmanDecoder {
             boolean nextBit = bis.decodeBit();
             node = nextBit ? tn.child2 : tn.child1;
         }
-        return node;
+        return (V) node;
     }
 
     /**
@@ -74,7 +74,7 @@ public abstract class HuffmanDecoder {
      *
      * @return the decoded object
      */
-    protected abstract Object decodeObjectFromStream() throws IOException;
+    protected abstract V decodeObjectFromStream() throws IOException;
 
     private Object decodeTree(int offset, int bits) throws IOException {
         boolean isNode = bis.decodeBit();

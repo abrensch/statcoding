@@ -127,10 +127,10 @@ public class DEM1LidarTile {
         bos.encodeVarBytes(yBaseKm);
         bos.encodeVarBytes(resolution);
 
-        HuffmanEncoder encoder = new HuffmanEncoder() {
+        HuffmanEncoder<Long> encoder = new HuffmanEncoder<Long>() {
             @Override
-            protected void encodeObjectToStream(Object obj) throws IOException {
-                bos.encodeSignedVarBits( (Long)obj, 8);
+            protected void encodeObjectToStream(Long lv) throws IOException {
+                bos.encodeSignedVarBits( lv, 8);
             }
         };
         for (int pass = 1; pass <= 2; pass++) {
@@ -160,9 +160,9 @@ public class DEM1LidarTile {
         yBaseKm = (int) bis.decodeVarBytes();
         resolution = (int) bis.decodeVarBytes();
 
-        HuffmanDecoder decoder = new HuffmanDecoder() {
+        HuffmanDecoder<Long> decoder = new HuffmanDecoder<Long>() {
             @Override
-            protected Object decodeObjectFromStream() throws IOException {
+            protected Long decodeObjectFromStream() throws IOException {
                 return bis.decodeSignedVarBits(8);
             }
         };
@@ -170,7 +170,7 @@ public class DEM1LidarTile {
         data = new int[1000000];
         long value = 0L;
         for (int i = 0; i < 1000000; i++) {
-            value += (Long) decoder.decodeObject();
+            value += decoder.decodeObject();
             data[i] = (int) value;
         }
         if (bis.readSyncBlock() != 0L) {
