@@ -17,6 +17,8 @@ public class BitStreamsTest extends TestCase {
         try (BitOutputStream bos = new BitOutputStream(baos)) {
             bos.encodeBit(true);
             bos.encodeBit(false);
+            bos.encodeBits(9, 3L);
+            bos.encodeBounded(111L, 7L);
             for (long l : testLongs) {
                 bos.encodeUnsignedVarBits(l, 0);
                 bos.encodeSignedVarBits(l, 0);
@@ -32,6 +34,8 @@ public class BitStreamsTest extends TestCase {
             assertTrue(bis.decodeBit());
             assertFalse(bis.decodeBit());
             assertEquals(ab.length - 1, bis.available());
+            assertEquals(3L, bis.decodeBits(9));
+            assertEquals(7L, bis.decodeBounded(111L));
             for (long l : testLongs) {
                 assertEquals(bis.decodeUnsignedVarBits(0), l);
                 assertEquals(bis.decodeSignedVarBits(0), l);
@@ -41,13 +45,14 @@ public class BitStreamsTest extends TestCase {
         }
 
         // check stream size
+        // (note: hasMoreRealBits overcounts to 8 bit boundary)
         try (BitInputStream bis = new BitInputStream(ab)) {
             long bitLength2 = 0L;
             while (bis.hasMoreRealBits()) {
                 bis.decodeBit();
                 bitLength2++;
             }
-            assertEquals(bitLength, bitLength2);
+            assertEquals( (bitLength+7) >> 3, bitLength2 >> 3 );
         }
 
         // check end of stream
@@ -88,6 +93,26 @@ public class BitStreamsTest extends TestCase {
             assertEquals(bis.decodeVarBytes(), 4711L);
             assertNull( bis.decodeSizedByteArray() );
             assertTrue(Arrays.equals(ab, bis.decodeSizedByteArray()));
+        }
+    }
+
+    public void testEncodeBounded() throws IOException {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (BitOutputStream bos = new BitOutputStream(baos)) {
+            for( long max = 0L; max < 1000L; max++ ) {
+                for( long value = 0L; value <= max ; value++ ) {
+                    bos.encodeBounded( max, value );
+                }
+            }
+        }
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        try (BitInputStream bis = new BitInputStream(bais)) {
+            for( long max = 0L; max < 1000L; max++ ) {
+                for( long value = 0L; value <= max ; value++ ) {
+                   assertEquals(value, bis.decodeBounded(max));
+                }
+            }
         }
     }
 

@@ -50,7 +50,7 @@ public class BitInputStream extends InputStream implements DataInput {
             int nextByte = in.read();
 
             if (nextByte != -1) {
-                b |= (nextByte & 0xffL) << bits;
+                b |= (nextByte & 0xffL) << (56-bits);
             } else {
                 eofBits += 8;
                 if (eofBits >= 256) {
@@ -98,8 +98,8 @@ public class BitInputStream extends InputStream implements DataInput {
         if (bits > 0) {
             reAlign();
             if (bits > 7) { // can read byte from bit-buffer
-                long value = b & 0xffL;
-                b >>>= 8;
+                long value = b >>> 56;
+                b <<= 8;
                 bits -= 8;
                 return (int) value;
             }
@@ -109,10 +109,10 @@ public class BitInputStream extends InputStream implements DataInput {
 
     private void reAlign() throws IOException {
         while ((bits & 7) > 0) { // any padding bits left?
-            if ((b & 1L) != 0L) {
+            if (b < 0L) {
                 throw new IOException("re-alignment-failure: found non-zero padding bit");
             }
-            b >>>= 1;
+            b <<= 1;
             bits--;
         }
     }
@@ -294,8 +294,8 @@ public class BitInputStream extends InputStream implements DataInput {
      */
     public final boolean decodeBit() throws IOException {
         fillBuffer();
-        boolean value = ((b & 1L) != 0L);
-        b >>>= 1;
+        boolean value = b < 0L;
+        b <<= 1;
         bits--;
         return value;
     }
@@ -312,11 +312,10 @@ public class BitInputStream extends InputStream implements DataInput {
         }
         fillBuffer();
         if (count > bits) {
-            return decodeBits( 32 ) | decodeBits(count-32) << 32; // buffer too small, split
+            return (decodeBits(count-32) << 32) | decodeBits( 32 ); // buffer too small, split
         }
-        long mask = 0xffffffffffffffffL >>> (64 - count);
-        long value = b & mask;
-        b >>>= count;
+        long value = b >>> (64 - count);
+        b <<= count;
         bits -= count;
         return value;
     }
@@ -325,11 +324,11 @@ public class BitInputStream extends InputStream implements DataInput {
     // **** Bitwise Variable Length Decoding ****
     // ******************************************
 
-    private static final int[] riceLookup = new int[256];    
+    private static final int[] riceLookup = new int[256];
     static {
         for ( int i=0; i < 256; i++ ) {
             int n = 0;
-            while ( (i & (1<<n)) != 0 ) {
+            while ( n<8 && (i & (0x80>>n)) == 0 ) {
                 n++;
             }
             riceLookup[i] = n;
@@ -337,28 +336,29 @@ public class BitInputStream extends InputStream implements DataInput {
     }
 
     /**
-     * Decode a rice code
-     * {@code 0 -> 0}<br>
-     * {@code 10 -> 1}<br>
-     * {@code 110 -> 2}<br>
-     * {@code 1110 -> 3}<br>
+     * Basically a "rice code". Limited to 0..63 as an assertion.
+     * {@code 1 -> 0}<br>
+     * {@code 01 -> 1}<br>
+     * {@code 001 -> 2}<br>
+     * {@code 0001 -> 3}<br>
      *
      * @return the decoded value
      */
-    public final int decodeRice() throws IOException {
+    private final int decodeLengthPrefix() throws IOException {
         int n = 0;
-        for(;;) {
+        do {
             fillBuffer();
-            int v = (int) (b & 0xffL);
+            int v = (int) (b >>> 56);
             int count = riceLookup[v];
             n += count;
             int consumed = count < 8 ? count+1 : 8;
-            b >>>= consumed;
+            b <<= consumed;
             bits -= consumed;
             if ( count < 8 ) {
                 return n;
             }
-        }
+        } while ( n < 64 );
+        throw new IllegalArgumentException( "unexpected length prefix, >= 64" );
     }
 
 
@@ -367,8 +367,7 @@ public class BitInputStream extends InputStream implements DataInput {
      * {@link BitOutputStream#encodeUnsignedVarBits( long, int )}<br>
      * <br>
      *
-     * This is similar to "Exponential Golomb Coding" except
-     * for details of bit inversion and ordering.
+     * For noisybits=0 this is known as "Exponential Golomb Coding"
      *
      * Please note that {@code noisyBits} must match the value used for encoding.
      *
@@ -376,7 +375,7 @@ public class BitInputStream extends InputStream implements DataInput {
      * @return the decoded value
      */
     public final long decodeUnsignedVarBits(int noisyBits) throws IOException {
-        int nBits = decodeRice();
+        int nBits = decodeLengthPrefix();
         long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
         return (range<<noisyBits) + decodeBits(nBits+noisyBits);
     }
@@ -413,10 +412,12 @@ public class BitInputStream extends InputStream implements DataInput {
         }
         long value = decodeBits( n );
 
-        // read the highest bit only if that would yield a value <= max
+        // read the highest bit only if a 1-bit would yield a value <= max
         long im = 1L << n; // integer mask
-        if ((value | im) <= max && decodeBit() ) {
-            value |= im;
+        if ((value | im) <= max ) {
+            if ( decodeBit() ) {
+                value |= im;
+            }
         }
         return value;
     }
@@ -505,16 +506,10 @@ public class BitInputStream extends InputStream implements DataInput {
             throws IOException {
         if (subSize == 1) // last-choice shortcut
         {
-            // ugly here: inverse bit-order then without the last-choice shortcut,
-            // but we do it that way for performance
             values[offset] = value | decodeBits(nextBitPos + 1);
             return;
         }
-        if (nextBitPos < 0L) { // cannot happen for unique, keep code for later
-            // while (subSize-- > 0) {
-            // values[offset++] = value;
-            // }
-            // return;
+        if (nextBitPos < 0L) { // cannot happen for unique array
             throw new RuntimeException("unique violation");
         }
 
@@ -548,11 +543,11 @@ public class BitInputStream extends InputStream implements DataInput {
      *
      * @return an index to the lookup array
      */
-    public final int decodeLookupIndex(int[] lengthArray) throws IOException {
+    public final int decodeLookupIndex(int[] lengthArray, int lookupBits) throws IOException {
         fillBuffer();
-        int v = (int) (b & (lengthArray.length - 1));
+        int v = (int) (b >>> (64-lookupBits));
         int count = lengthArray[v];
-        b >>>= count;
+        b <<= count;
         bits -= count;
         return v;
     }

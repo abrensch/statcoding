@@ -85,8 +85,8 @@ public abstract class HuffmanEncoder<V> {
         boolean isNode = node.child1 != null;
         bos.encodeBit(isNode);
         if (isNode) {
-            encodeTree(node.child1, bits + 1, code);
-            encodeTree(node.child2, bits + 1, code + (1L << bits));
+            encodeTree(node.child1, bits + 1, (code << 1) );
+            encodeTree(node.child2, bits + 1, (code << 1) | 1L);
         } else {
             encodeObjectToStream((V)node.obj);
         }

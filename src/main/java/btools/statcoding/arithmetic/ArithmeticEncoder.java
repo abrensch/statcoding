@@ -69,33 +69,25 @@ public final class ArithmeticEncoder extends ArithmeticCoderBase {
      */
     public void finish() throws IOException {
         if ( symbolsCoded ) {
-            output.encodeBit( true );
-            long bitsToWrite = numUnderflow + numStateBits - 1L;
-            while( bitsToWrite > 0)  {
-                long bitsNow = Math.min( bitsToWrite, 8 );
-                output.encodeBits( (int)bitsNow, 0L );
-                bitsToWrite -= bitsNow;
-            }
+            writeBitAndFollowBits( true );
+            output.encodeBits( numStateBits-1, 0L );
         }
     }
 
     protected void shift() throws IOException {
         // write the current top-bit followed by numUnderflow inverse bits
         // to the underlying output stream
-        long bitPattern = (low & halfRange) == 0L ? 0x1feL : 1L;
-        long bitsToWrite = numUnderflow+1;
-        long bitsNow = Math.min( bitsToWrite, 8 );
-        output.encodeBits( (int)bitsNow, bitPattern );
-        bitsToWrite -= bitsNow;
-        bitPattern >>>= 1; // low bit now same as all others
-        while( bitsToWrite > 0)  {
-            bitsNow = Math.min( bitsToWrite, 8 );
-            output.encodeBits( (int)bitsNow, bitPattern );
-            bitsToWrite -= bitsNow;
-        }
-        numUnderflow = 0L;
+        writeBitAndFollowBits( (low & halfRange) != 0L );
     }
 
+    private void writeBitAndFollowBits(boolean bit) throws IOException {
+        output.encodeBit( bit );
+        while( numUnderflow > 0L ) {
+            long bitsNow = Math.min( numUnderflow, 8 );
+            output.encodeBits( (int)bitsNow, bit ? 0x00 : 0xff );
+            numUnderflow -= bitsNow;
+        }
+    }
 
     protected void underflow() {
         numUnderflow++;

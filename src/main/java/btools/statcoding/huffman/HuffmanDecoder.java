@@ -28,7 +28,7 @@ public abstract class HuffmanDecoder<V> {
      * @return obj the decoded object
      */
     public final V decodeObject() throws IOException {
-        int idx = bis.decodeLookupIndex(lengths);
+        int idx = bis.decodeLookupIndex(lengths,lookupBits);
         Object node = subtrees[idx];
         while (node instanceof TreeNode) {
             TreeNode tn = (TreeNode) node;
@@ -56,7 +56,7 @@ public abstract class HuffmanDecoder<V> {
             return;
         }
         if (lookupBits < 0 || lookupBits > 20) {
-            throw new IllegalArgumentException("lookupBits ot of range ( 0..20 ): " + lookupBits);
+            throw new IllegalArgumentException("lookupBits out of range ( 0..20 ): " + lookupBits);
         }
         this.bis = bis;
         this.lookupBits = lookupBits;
@@ -78,10 +78,10 @@ public abstract class HuffmanDecoder<V> {
 
     private Object decodeTree(int offset, int bits) throws IOException {
         boolean isNode = bis.decodeBit();
-        int step = bits <= lookupBits ? 1 << bits : 0;
+        int step = bits <= lookupBits ? 1 << (lookupBits-bits) : 0;
         if (isNode) {
             Object child1 = decodeTree(offset, bits + 1);
-            Object child2 = decodeTree(offset + step, bits + 1);
+            Object child2 = decodeTree(offset + (step>>1), bits + 1);
             if (bits < lookupBits) {
                 return null;
             }
@@ -96,7 +96,7 @@ public abstract class HuffmanDecoder<V> {
         }
         Object leaf = decodeObjectFromStream();
         if (step > 0) {
-            for (int i = offset; i < subtrees.length; i += step) {
+            for (int i = offset; i < offset+step; i ++) {
                 subtrees[i] = leaf;
                 lengths[i] = bits;
             }

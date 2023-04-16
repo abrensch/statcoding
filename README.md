@@ -5,7 +5,7 @@ A library to help statistically encode and decode data. It is refactored from fi
 
 Refactoring is aimed towards a clear API with 64-bit default width, less performance hacks, a more educational structure, full coverage of edge cases and as few traps and glitches as possible.
 
-The very heart of this library are the classes Bit(In/Out)putStream. They implement the Data(In/Out)put interface and are able to switch back and forth between byte-aligned and bitwise operations.
+The very heart of this library are the classes Bit(In/Out)putStream. They implement the Data(In/Out)put interface and are able to switch back and forth between byte-aligned and bitwise operations. The bitwise operations use the "MSB first" bit ordering.
 
 Huffman encoding and arithmetic encoding is included together with a concept for Codecs with fixed statistics and 2-pass encoding. These are fitted for write-once/read-many-times problems like the blockwise read-only random access database inside BRouter's RD5-Datafiles.
 

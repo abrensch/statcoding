@@ -1,5 +1,7 @@
 package btools.statcoding;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -37,6 +39,10 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         writeInternal((int) (b & 0xffL));
     }
 
+    private void writeHighByte(long b) throws IOException {
+        writeInternal((int) (b >>> 56));
+    }
+
     private void writeInternal(int b) throws IOException {
         out.write(b);
         bytesWritten++;
@@ -44,16 +50,16 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     private void flushBuffer() throws IOException {
         while (bits > 7) {
-            writeLowByte(b);
-            b >>>= 8;
+            writeHighByte(b);
+            b <<= 8;
             bits -= 8;
         }
     }
 
     private void flushBufferAndReAlign() throws IOException {
         while (bits > 0) {
-            writeLowByte(b);
-            b >>>= 8;
+            writeHighByte(b);
+            b <<= 8;
             bits -= 8;
         }
         bits = 0;
@@ -259,7 +265,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     public final void encodeBit(boolean value) throws IOException {
         flushBuffer();
         if (value) {
-            b |= 1L << bits;
+            b |= 1L << (63-bits);
         }
         bits++;
     }
@@ -273,17 +279,16 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     public final void encodeBits(int nBits, long value) throws IOException {
         flushBuffer();
         if (nBits > 0 && bits + nBits <= 64) {
-            long mask = 0xffffffffffffffffL >>> (64 - nBits);
-            b |= (value & mask) << bits;
+            b |= (value << (64-nBits) ) >>> bits;
             bits += nBits;
             return;
         }
         if (nBits < 0 || nBits > 64) {
             throw new IllegalArgumentException("encodeBits: nBits out of range (0..64): " + nBits);
         }
-        if ( nBits > 0 ) {
-            encodeBits(8, value); // buffer too small, split
-            encodeBits(nBits-8, value >>> 8 );
+        if ( nBits > 0 ) {  // buffer too small, split
+            encodeBits(nBits-32, value >>> 32 );
+            encodeBits(32, value);
         }
     }
 
@@ -298,14 +303,13 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      * mapping is used:<br>
      * <br>
      *
-     * {@code 0 -> 0}<br>
-     * {@code 10 -> 1} + following 1-bit word ( 1..2 )<br>
-     * {@code 110 -> 3} + following 2-bit word ( 3..6 )<br>
-     * {@code 1110 -> 7} + following 3-bit word ( 7..14 )<br>
+     * {@code 1 -> 0}<br>
+     * {@code 01 -> 1} + following 1-bit word ( 1..2 )<br>
+     * {@code 001 -> 3} + following 2-bit word ( 3..6 )<br>
+     * {@code 0001 -> 7} + following 3-bit word ( 7..14 )<br>
      * etc.
      *
-     * This is similar to "Exponential Golomb Coding" except
-     * for details of bit inversion and ordering.
+     * For noisybits=0 this is known as "Exponential Golomb Coding"
      *
      * @param value     the (non-negative) number to encode
      * @param noisyBits the number of lower bits considered noisy
@@ -324,7 +328,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             range = (range << 1) | 1L;
             nBits++;
         }
-        encodeBits(nBits+1,range);
+        encodeBits(nBits+1,1L);
         encodeBits(nBits+noisyBits, value - (range<<noisyBits) );
     }
 
@@ -359,23 +363,26 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         if (value > max) {
             throw new IllegalArgumentException("value out of range");
         }
-        long im = 1L; // integer mask
-        while (im > 0 && im <= max) {
-            if ((value & im) != 0L) {
-                encodeBit(true);
-                max -= im;
-            } else {
-                encodeBit(false);
-            }
-            im <<= 1;
+
+        long m = max;
+        int n = 0;
+        while ((m >>>= 1) != 0L) {
+            n++;
         }
-    }
+        encodeBits( n, value );
+
+        // write the highest bit only if a 1-bit would yield a value <= max
+        long im = 1L << n; // integer mask
+        if ((value | im) <= max ) {
+            encodeBit( (value & im) != 0L );
+        }
+     }
 
     /**
      * encodeString() is similar writeUTF. But can
      * encode more values (null-references and String >= 64k)
      * and is a little bit more compact for very short
-     * Strings and for Strings with certail restrictes character sets
+     * Strings and for Strings with certain restricted character sets
      * (numeric, numeric plus /,.- , ascii)
      *
      * @param value the String to encode (may be null)
@@ -478,7 +485,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      * Same as {@link #encodeUniqueSortedArray( long[], int, int, int )}, but
      * assuming that the most significant bit is known from context. This method
      * calls itself recursively down to subSize=1, where a fast shortcut kicks in to
-     * encode the remaining bits of that remaining value-
+     * encode the remaining bits of that remaining value.
      *
      * @param values     the array to encode
      * @param offset     position in this array where to start
@@ -490,15 +497,12 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             throws IOException {
         if (subSize == 1) // last-choice shortcut
         {
-            // ugly here: inverse bit-order then without the last-choice shortcut,
-            // but we do it that way for performance
             encodeBits(nextBitPos + 1, values[offset]);
             return;
         }
-        if (nextBitPos < 0L) {
-            return;
+        if (nextBitPos < 0L) { // cannot happen for unique array
+            throw new RuntimeException("unique violation");
         }
-
         long nextBits = 1L << nextBitPos;
         long data = mask & values[offset];
         mask |= nextBits;
