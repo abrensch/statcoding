@@ -19,10 +19,12 @@ public class BitStreamsTest extends TestCase {
             bos.encodeBit(false);
             bos.encodeBits(9, 3L);
             bos.encodeBounded(111L, 7L);
-            for (long l : testLongs) {
-                bos.encodeUnsignedVarBits(l, 0);
-                bos.encodeSignedVarBits(l, 0);
-                bos.encodeSignedVarBits(-l, 0);
+            for (int noisyBits =0; noisyBits < 64; noisyBits++) {
+                for (long l : testLongs) {
+                    bos.encodeUnsignedVarBits(l, noisyBits);
+                    bos.encodeSignedVarBits(l, noisyBits);
+                    bos.encodeSignedVarBits(-l, noisyBits);
+                }
             }
             bos.encodeSignedVarBits(Long.MIN_VALUE, 0);
             bitLength = bos.getBitPosition();
@@ -36,10 +38,12 @@ public class BitStreamsTest extends TestCase {
             assertEquals(ab.length - 1, bis.available());
             assertEquals(3L, bis.decodeBits(9));
             assertEquals(7L, bis.decodeBounded(111L));
-            for (long l : testLongs) {
-                assertEquals(bis.decodeUnsignedVarBits(0), l);
-                assertEquals(bis.decodeSignedVarBits(0), l);
-                assertEquals(bis.decodeSignedVarBits(0), -l);
+            for (int noisyBits =0; noisyBits < 64; noisyBits++) {
+                for (long l : testLongs) {
+                    assertEquals(l, bis.decodeUnsignedVarBits(noisyBits));
+                    assertEquals(l, bis.decodeSignedVarBits(noisyBits));
+                    assertEquals(-l, bis.decodeSignedVarBits(noisyBits));
+                }
             }
             assertEquals(bis.decodeSignedVarBits(0), Long.MIN_VALUE);
         }

@@ -366,33 +366,52 @@ public class BitInputStream extends InputStream implements DataInput {
      * Decoding twin to
      * {@link BitOutputStream#encodeUnsignedVarBits( long, int )}<br>
      * <br>
-     *
-     * For noisybits=0 this is known as "Exponential Golomb Coding"
-     *
+     * This is known as "Order k Exponential Golomb Coding" (with k=noisybits)<br>
+     * <br>
      * Please note that {@code noisyBits} must match the value used for encoding.
      *
      * @param noisyBits the number of lower bits considered noisy
      * @return the decoded value
+     * @see <a href="https://en.wikipedia.org/wiki/Exponential-Golomb_coding">Exponential-Golomb_coding</a>
      */
     public final long decodeUnsignedVarBits(int noisyBits) throws IOException {
+        checkNoisyRange( noisyBits );
+        return (decodeUnsignedVarBits() << noisyBits) | decodeBits(noisyBits);
+    }
+
+    private final long decodeUnsignedVarBits() throws IOException {
         int nBits = decodeLengthPrefix();
         long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
-        return (range<<noisyBits) + decodeBits(nBits+noisyBits);
+        return range + decodeBits(nBits);
     }
 
     /**
      * Decoding twin to {@link BitOutputStream#encodeSignedVarBits( long, int )}<br>
      * <br>
-     *
+     * For noisybits=0 this is known as "Signed Exponential Golomb Coding"<br>
+     * <br>
      * Please note that {@code noisyBits} must match the value used for encoding.
      *
      * @param noisyBits the number of lower bits considered noisy
      * @return the decoded value
+     * @see <a href="https://en.wikipedia.org/wiki/Exponential-Golomb_coding">Exponential-Golomb_coding</a>
      */
     public final long decodeSignedVarBits(int noisyBits) throws IOException {
-        boolean isNegative = decodeBit();
-        long lv = decodeUnsignedVarBits(noisyBits);
-        return isNegative ? -lv - 1L : lv;
+        checkNoisyRange( noisyBits );
+        boolean isCentral = decodeBit();
+        long lv = isCentral ? 0L : decodeUnsignedVarBits() + 1L;
+        long noisyWord = decodeBits( noisyBits );
+        if ( !isCentral && decodeBit() ) {
+            lv = -lv;
+        }
+        long shiftedValue = (lv << noisyBits) | noisyWord;
+        return noisyBits == 0 ? shiftedValue : shiftedValue - (1L<<(noisyBits-1));
+    }
+
+    private static void checkNoisyRange( int noisyBits ) {
+        if ( noisyBits < 0 || noisyBits > 63 ) {
+            throw new IllegalArgumentException( "noisyBits out of rangs (0..63): " + noisyBits );
+        }
     }
 
     /**

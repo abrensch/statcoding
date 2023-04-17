@@ -1,7 +1,5 @@
 package btools.statcoding;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -298,52 +296,77 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     /**
      * Bitwise variable length encoding of a non-negative number. The lower
-     * {@code noisyBits} bits are encoded directly (see
-     * {@link #encodeBits( int, long )}) and for the remaining value the following
-     * mapping is used:<br>
+     * {@code noisyBits} bits are encoded directly and for the remaining 
+     * value the following mapping is used:<br>
      * <br>
-     *
      * {@code 1 -> 0}<br>
      * {@code 01 -> 1} + following 1-bit word ( 1..2 )<br>
      * {@code 001 -> 3} + following 2-bit word ( 3..6 )<br>
      * {@code 0001 -> 7} + following 3-bit word ( 7..14 )<br>
-     * etc.
-     *
-     * For noisybits=0 this is known as "Exponential Golomb Coding"
+     * etc.<br>
+     * <br>
+     * This is known as "Order k Exponential Golomb Coding" (with k=noisybits)
      *
      * @param value     the (non-negative) number to encode
      * @param noisyBits the number of lower bits considered noisy
      *
      * @see BitInputStream#decodeUnsignedVarBits(int)
+     * @see <a href="https://en.wikipedia.org/wiki/Exponential-Golomb_coding">Exponential-Golomb_coding</a>
      */
     public final void encodeUnsignedVarBits(long value, int noisyBits) throws IOException {
+        checkNoisyRange( noisyBits );
         if (value < 0) {
-            throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative values: " + value);
+            throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative value but is: " + value);
         }
-        long v = value >>> noisyBits;
+        encodeUnsignedVarBits( value >>> noisyBits );
+        encodeBits(noisyBits,value);
+    }
+
+    private final void encodeUnsignedVarBits(long value) throws IOException {
         long range = 0L;
         int nBits = 0;
-        while (v > range) {
-            v -= range + 1L;
+        while (value > range) {
+            value -= range + 1L;
             range = (range << 1) | 1L;
             nBits++;
         }
         encodeBits(nBits+1,1L);
-        encodeBits(nBits+noisyBits, value - (range<<noisyBits) );
+        encodeBits(nBits, value);
     }
 
     /**
      * Similar to {@link #encodeUnsignedVarBits(long,int)} but allowing for negative
-     * numbers by prepending a sign bit.
-     *
+     * numbers.
+     * <br>
+     * For noisybits=0 this is known as "Signed Exponential Golomb Coding"<br>
+     * <br>
      * @param value     the number to encode
      * @param noisyBits the number of lower bits considered noisy
      *
      * @see BitInputStream#decodeSignedVarBits(int)
+     * @see <a href="https://en.wikipedia.org/wiki/Exponential-Golomb_coding">Exponential-Golomb_coding</a>
      */
     public final void encodeSignedVarBits(long value, int noisyBits) throws IOException {
-        encodeBit(value < 0L);
-        encodeUnsignedVarBits(value < 0L ? -value - 1L : value, noisyBits);
+        checkNoisyRange( noisyBits );
+
+        // shift by half the noisy range (can roll over, don't care..)
+        long shiftedValue = noisyBits == 0 ? value : value + (1L<<(noisyBits-1));
+        long lv = shiftedValue >> noisyBits;
+        boolean isCentral = lv == 0L;
+        encodeBit(isCentral);
+        if ( !isCentral ) {
+            encodeUnsignedVarBits( (lv < 0L ? -lv : lv) - 1L);
+        }
+        encodeBits(noisyBits, shiftedValue);
+        if ( !isCentral ) {
+            encodeBit(lv < 0L);
+        }
+    }
+
+    private static void checkNoisyRange( int noisyBits ) {
+        if ( noisyBits < 0 || noisyBits > 63 ) {
+            throw new IllegalArgumentException( "noisyBits out of rangs (0..63): " + noisyBits );
+        }
     }
 
     /**
