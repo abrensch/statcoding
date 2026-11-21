@@ -5,6 +5,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * BitOutputStream is a replacement for java.io.DataOutputStream extending it by
@@ -18,9 +20,15 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     private int bits; // bits left in buffer
     private long b; // buffer word
     private long bytesWritten;
+    private boolean crcEnabled;
+    private long currentCrc;
+    private Map<String,long[]> bitStatistics;
+    private long lastBitPos;
 
     protected final OutputStream out;
     private DataOutputStream dos; // created lazily if needed
+    private long[] lastChannelValues; // used for writeDiffed, created lazily
+
 
     /**
      * Construct a BitOutputStream for the underlying OutputStream.
@@ -43,9 +51,15 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     private void writeInternal(int b) throws IOException {
         out.write(b);
-        bytesWritten++;
+        countBytes(b);
     }
 
+  private void countBytes(int b) {
+      bytesWritten++;
+      if (crcEnabled) {
+          currentCrc = Crc64.update(currentCrc, b);
+      }
+  }
     private void flushBuffer() throws IOException {
         while (bits > 7) {
             writeHighByte(b);
@@ -61,6 +75,20 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             bits -= 8;
         }
         bits = 0;
+    }
+
+    public void startCRC() {
+        crcEnabled = true;
+        currentCrc = -1L;
+    }
+
+    public long finishCRC() throws IOException {
+        if ( !crcEnabled ) {
+            throw new RuntimeException( "crc not enabled!" );
+        }
+        flushBufferAndReAlign();
+        crcEnabled = false;
+        return currentCrc;
     }
 
     /**
@@ -98,14 +126,18 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     public void write(int b) throws IOException {
         flushBufferAndReAlign();
         out.write(b);
-        bytesWritten++;
+        countBytes(b);
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
         flushBufferAndReAlign();
         out.write(b, off, len);
-        bytesWritten += len;
+        int p = off;
+        int end = p+len;
+        while (p<end) {
+            countBytes(b[p++]);
+        }
     }
 
     /**
@@ -127,6 +159,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         flushBufferAndReAlign();
         out.close();
     }
+
 
     // ***************************************
     // **** METHODS of java.io.DataOutput ****
@@ -228,6 +261,27 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         }
     }
 
+  /**
+   * Encode a number by encoding the difference
+   * to the last number for that channel via
+   * encodeVarBytes
+   *
+   * @param value the long value to encode
+   * @param channel the channel number to use
+   *
+   * @see BitInputStream#readDiffed
+   */
+  public void writeDiffed(long value, int channel) throws IOException {
+      if ( lastChannelValues == null ) {
+          lastChannelValues = new long[channel+1];
+      } else if ( channel >= lastChannelValues.length ) {
+          lastChannelValues = Arrays.copyOf( lastChannelValues, channel+1 );
+      }
+      long diff = value - lastChannelValues[channel];
+      lastChannelValues[channel] = value;
+      encodeVarBytes(diff);
+  }
+
     // re-arrange the bits of a signed long to make it better suited for var-length
     // coding
     private long moveSignBit(long value) {
@@ -296,7 +350,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     /**
      * Bitwise variable length encoding of a non-negative number. The lower
-     * {@code noisyBits} bits are encoded directly and for the remaining 
+     * {@code noisyBits} bits are encoded directly and for the remaining
      * value the following mapping is used:<br>
      * <br>
      * {@code 1 -> 0}<br>
@@ -315,20 +369,17 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      */
     public final void encodeUnsignedVarBits(long value, int noisyBits) throws IOException {
         checkNoisyRange( noisyBits );
-        if (value < 0) {
-            throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative value but is: " + value);
-        }
-        encodeUnsignedVarBits( value >>> noisyBits );
+        encodeUnsignedVarBits( value >> noisyBits );
         encodeBits(noisyBits,value);
     }
 
-    private final void encodeUnsignedVarBits(long value) throws IOException {
-        long range = 0L;
+    public void encodeUnsignedVarBits(long value) throws IOException {
+        if (value < 0) {
+          throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative value but is: " + value);
+        }
         int nBits = 0;
-        while (value > range) {
-            value -= range + 1L;
-            range = (range << 1) | 1L;
-            nBits++;
+        while (nBits < 63 && value >= 1L << nBits ) {
+            value -= 1L << nBits++;
         }
         encodeBits(nBits+1,1L);
         encodeBits(nBits, value);
@@ -346,7 +397,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      * @see BitInputStream#decodeSignedVarBits(int)
      * @see <a href="https://en.wikipedia.org/wiki/Exponential-Golomb_coding">Exponential-Golomb_coding</a>
      */
-    public final void encodeSignedVarBits(long value, int noisyBits) throws IOException {
+    public final boolean encodeSignedVarBits(long value, int noisyBits) throws IOException {
         checkNoisyRange( noisyBits );
 
         // shift by half the noisy range (can roll over, don't care..)
@@ -361,6 +412,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         if ( !isCentral ) {
             encodeBit(lv < 0L);
         }
+        return isCentral;
     }
 
     private static void checkNoisyRange( int noisyBits ) {
@@ -516,7 +568,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      * @param nextBitPos bit-position of the most significant bit
      * @param mask       should be 0 at recursion start
      */
-    protected void encodeUniqueSortedArray(long[] values, int offset, int subSize, int nextBitPos, long mask)
+    public void encodeUniqueSortedArray(long[] values, int offset, int subSize, int nextBitPos, long mask)
             throws IOException {
         if (subSize == 1) // last-choice shortcut
         {
@@ -554,4 +606,33 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             encodeUniqueSortedArray(values, i, size2, nextBitPos - 1, mask);
         }
     }
+
+
+
+  public void registerBitStatistics( Map<String,long[]> bitStatistics ) {
+    this.bitStatistics = bitStatistics;
+    lastBitPos = getBitPosition();
+  }
+
+  /**
+   * assign the encoded bits since the last call assignBits to the given
+   *
+   * @see #registerBitStatistics
+   */
+  public void assignBits(String name) {
+    if ( bitStatistics != null ) {
+      long bitPos = getBitPosition();
+      if (name != null) {
+        long[] stats = bitStatistics.get(name);
+        if (stats == null) {
+          stats = new long[2];
+          bitStatistics.put(name, stats);
+        }
+        stats[0] += bitPos - lastBitPos;
+        stats[1]++;
+      }
+      lastBitPos = bitPos;
+    }
+  }
+
 }

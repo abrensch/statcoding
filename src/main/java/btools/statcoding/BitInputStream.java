@@ -1,11 +1,8 @@
 package btools.statcoding;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * BitInputStream is a replacement for java.io.DataInputStream extending it by
@@ -26,6 +23,7 @@ public class BitInputStream extends InputStream implements DataInput {
 
     protected InputStream in;
     private DataInputStream dis; // created lazily if needed
+    private long[] lastChannelValues; // used for readDiffed, created lazily
 
     /**
      * Construct a BitInputStream for the underlying InputStream.
@@ -39,7 +37,7 @@ public class BitInputStream extends InputStream implements DataInput {
     /**
      * Construct a BitInputStream for the given Byte-Array.
      *
-     * @param is the underlying stream to read from
+     * @param ab the underlying byte array to read from
      */
     public BitInputStream(byte[] ab) throws IOException {
         in = new ByteArrayInputStream(ab);
@@ -141,7 +139,7 @@ public class BitInputStream extends InputStream implements DataInput {
 
     @Override
     public int available() throws IOException {
-        return (bits >> 3) + in.available();
+        return Math.max( 0, (bits >> 3) + in.available() - (eofBits >> 3));
     }
 
     @Override
@@ -251,7 +249,7 @@ public class BitInputStream extends InputStream implements DataInput {
         for (int shift = 0; shift < 64; shift += 7) {
             int nextByte = read();
             if (nextByte == -1) {
-                throw new IOException("unexpected EOF in decodeVarBytes");
+                throw new EOFException("unexpected EOF in decodeVarBytes");
             }
             v |= (nextByte & 0x7fL) << shift;
             if ((nextByte & 0x80) == 0) {
@@ -261,12 +259,31 @@ public class BitInputStream extends InputStream implements DataInput {
         return restoreSignBit(v);
     }
 
+    /**
+     * Decoding twin to {@link BitOutputStream#writeDiffed( long, int )}
+     *
+     * @param channel the channel number to use
+     *
+     * @return the decoded long value
+     */
+    public long readDiffed(int channel) throws IOException {
+        if ( lastChannelValues == null ) {
+            lastChannelValues = new long[channel+1];
+        } else if ( channel >= lastChannelValues.length ) {
+            lastChannelValues = Arrays.copyOf( lastChannelValues, channel+1 );
+        }
+        long d = decodeVarBytes();
+        long value = lastChannelValues[channel] + d;
+        lastChannelValues[channel] = value;
+        return value;
+    }
+
     private long restoreSignBit(long value) {
         return (value & 1L) == 0L ? value >>> 1 : -(value >>> 1) - 1L;
     }
 
     /**
-     * Decoding twin to {@link BitOutputStream#encodeSizedByteArray( bte[] )}
+     * Decoding twin to {@link BitOutputStream#encodeSizedByteArray( byte[] )}
      *
      * @return the the decoded byte array
      */
@@ -310,6 +327,9 @@ public class BitInputStream extends InputStream implements DataInput {
         if (count == 0) {
             return 0L;
         }
+        if (count < 0 || count > 64) {
+            throw new IllegalArgumentException("count out of range (0..64): " + count);
+        }
         fillBuffer();
         if (count > bits) {
             return (decodeBits(count-32) << 32) | decodeBits( 32 ); // buffer too small, split
@@ -323,43 +343,6 @@ public class BitInputStream extends InputStream implements DataInput {
     // ******************************************
     // **** Bitwise Variable Length Decoding ****
     // ******************************************
-
-    private static final int[] riceLookup = new int[256];
-    static {
-        for ( int i=0; i < 256; i++ ) {
-            int n = 0;
-            while ( n<8 && (i & (0x80>>n)) == 0 ) {
-                n++;
-            }
-            riceLookup[i] = n;
-        }
-    }
-
-    /**
-     * Basically a "rice code". Limited to 0..63 as an assertion.
-     * {@code 1 -> 0}<br>
-     * {@code 01 -> 1}<br>
-     * {@code 001 -> 2}<br>
-     * {@code 0001 -> 3}<br>
-     *
-     * @return the decoded value
-     */
-    private final int decodeLengthPrefix() throws IOException {
-        int n = 0;
-        do {
-            fillBuffer();
-            int v = (int) (b >>> 56);
-            int count = riceLookup[v];
-            n += count;
-            int consumed = count < 8 ? count+1 : 8;
-            b <<= consumed;
-            bits -= consumed;
-            if ( count < 8 ) {
-                return n;
-            }
-        } while ( n < 64 );
-        throw new IllegalArgumentException( "unexpected length prefix, >= 64" );
-    }
 
 
     /**
@@ -379,8 +362,39 @@ public class BitInputStream extends InputStream implements DataInput {
         return (decodeUnsignedVarBits() << noisyBits) | decodeBits(noisyBits);
     }
 
-    private final long decodeUnsignedVarBits() throws IOException {
-        int nBits = decodeLengthPrefix();
+    public final long decodeUnsignedVarBits() throws IOException {
+        fillBuffer();
+        int v = (int) (b >>> 56);
+        int codeLength = varBitLengthsArray[v];
+        if (codeLength < 8) {
+          b <<= codeLength;
+          bits -= codeLength;
+          return varBitValuesArray[v]; // short code fully decoded by lookup
+        }
+        int nBits = 0;
+        while (codeLength == 17) {
+          b <<= 8;
+          bits -= 8;
+          if ( (nBits +=8 ) == 64 ) {
+            throw new IllegalArgumentException( "unexpected length prefix, >= 64" );
+          }
+          fillBuffer();
+          codeLength = varBitLengthsArray[(int) (b >>> 56)];
+        }
+        int remainingBits = codeLength >> 1;
+        nBits += remainingBits;
+        int consumed = remainingBits+1;
+        b <<= consumed;
+        bits -= consumed;
+        long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
+        return range + decodeBits(nBits);
+    }
+
+    public final long decodeUnsignedVarBitsSlow() throws IOException {
+        int nBits = 0;
+        while ( !decodeBit() ) {
+          nBits++;
+        }
         long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
         return range + decodeBits(nBits);
     }
@@ -423,11 +437,26 @@ public class BitInputStream extends InputStream implements DataInput {
      * @param max the number of lower bits considered noisy
      * @return the decoded value
      */
+    public final int decodeBoundedInt(int max) throws IOException {
+
+        // small number shortcut using lookup-tables
+        if (max<16) {
+            fillBuffer();
+            int idx = max << 4 | (int)(b >>> 60);
+            int count = boundLengthsArrays[idx];
+            b <<= count;
+            bits -= count;
+            return boundValuesArrays[idx];
+        }
+        return (int)decodeBounded(max);
+    }
+
     public final long decodeBounded(long max) throws IOException {
+
         long m = max;
         int n = 0;
         while ((m >>>= 1) != 0L) {
-            n++;
+          n++;
         }
         long value = decodeBits( n );
 
@@ -435,11 +464,48 @@ public class BitInputStream extends InputStream implements DataInput {
         long im = 1L << n; // integer mask
         if ((value | im) <= max ) {
             if ( decodeBit() ) {
-                value |= im;
+              value |= im;
             }
         }
         return value;
     }
+
+    private static final int[] boundLengthsArrays = new int[256];
+    private static final int[] boundValuesArrays = new int[256];
+    static {
+        BitInputStream bis = new BitInputStream(InputStream.nullInputStream());
+        for( int max=0; max<16; max++ ) {
+            for(int v = 0; v<16; v++) {
+                int idx = max << 4 | v;
+                bis.b = ((long)v) << 60;
+                bis.bits = 64;
+                bis.eofBits = 0;
+                try {
+                  boundValuesArrays[idx] = (int)bis.decodeBounded(max);
+                } catch( IOException ioe ) {
+                    throw new RuntimeException( ioe );
+                }
+              boundLengthsArrays[idx] = 64+bis.eofBits-bis.bits;
+            }
+        }
+    }
+
+  private static final int[] varBitLengthsArray = new int[256];
+  private static final int[] varBitValuesArray = new int[256];
+  static {
+    BitInputStream bis = new BitInputStream(InputStream.nullInputStream());
+    for(int v = 0; v<256; v++) {
+        bis.b = ((long)(2*v+1)) << 55;
+        bis.bits = 64;
+        bis.eofBits = 0;
+        try {
+          varBitValuesArray[v] = (int)bis.decodeUnsignedVarBitsSlow();
+        } catch( IOException ioe ) {
+          throw new RuntimeException( ioe );
+        }
+      varBitLengthsArray[v] = 64+bis.eofBits-bis.bits;
+    }
+  }
 
     /**
      * Decoding twin to {@link BitOutputStream#encodeString( String )}
@@ -521,7 +587,7 @@ public class BitInputStream extends InputStream implements DataInput {
      * @param nextBitPos bit-position of the most significant bit
      * @param value      should be 0 at recursion start
      */
-    protected void decodeUniqueSortedArray(long[] values, int offset, int subSize, int nextBitPos, long value)
+    public void decodeUniqueSortedArray(long[] values, int offset, int subSize, int nextBitPos, long value)
             throws IOException {
         if (subSize == 1) // last-choice shortcut
         {
@@ -534,11 +600,11 @@ public class BitInputStream extends InputStream implements DataInput {
 
         long nextBit = 1L << nextBitPos;
         int size1;
-        if (subSize > nextBit) {
-            long min = subSize - nextBit;
-            size1 = (int) (decodeBounded(nextBit - min) + min);
+        if (subSize >= nextBit) {
+            int min = subSize - (int)nextBit;
+            size1 = decodeBoundedInt((int)nextBit - min) + min;
         } else {
-            size1 = (int) decodeBounded(subSize);
+            size1 = decodeBoundedInt(subSize);
         }
         int size2 = subSize - size1;
 
@@ -562,9 +628,9 @@ public class BitInputStream extends InputStream implements DataInput {
      *
      * @return an index to the lookup array
      */
-    public final int decodeLookupIndex(int[] lengthArray, int lookupBits) throws IOException {
+    public final int decodeLookupIndex(int[] lengthArray, int m64lookupBits) throws IOException {
         fillBuffer();
-        int v = (int) (b >>> (64-lookupBits));
+        int v = (int) (b >>> m64lookupBits);
         int count = lengthArray[v];
         b <<= count;
         bits -= count;
