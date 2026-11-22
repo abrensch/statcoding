@@ -557,7 +557,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     }
 
     /**
-     * Same as {@link #encodeUniqueSortedArray( long[], int, int, int )}, but
+     * Same as {@link #encodeUniqueSortedArray( long[], int, int )}, but
      * assuming that the most significant bit is known from context. This method
      * calls itself recursively down to subSize=1, where a fast shortcut kicks in to
      * encode the remaining bits of that remaining value.

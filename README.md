@@ -21,10 +21,43 @@ Usage
 
    mvn install
 
-   Recommended use is to just copy the java-sources + unit-tests you are actually using into your project.
-   While in beta, I will not upload the statcoding library to maven-central, and reserve the right to change
-   the binary format created by the library in an incompatible way.
+ - Use it as a Maven dependency:
 
+   ```xml
+   <dependency>
+     <groupId>io.github.abrensch</groupId>
+     <artifactId>statcoding</artifactId>
+     <version>0.9.0</version>
+   </dependency>
+   ```
+
+Releasing to Maven Central
+--------------------------
+
+The project is configured for the Sonatype Central Publisher Portal. Before the first release, verify the
+`io.github.abrensch` namespace in the Portal and create a user token. Add the token to your Maven
+`settings.xml` (do not commit it):
+
+```xml
+<servers>
+  <server>
+    <id>central</id>
+    <username>YOUR_TOKEN_USERNAME</username>
+    <password>YOUR_TOKEN_PASSWORD</password>
+  </server>
+</servers>
+```
+
+Configure a GPG key locally, then set the project version in `pom.xml` to a release version without
+`-SNAPSHOT`. Run:
+
+```sh
+mvn -Pcentral-release clean deploy
+```
+
+The release profile creates source and Javadoc JARs, signs the artifacts, and uploads a deployment for
+validation. Publishing is intentionally not automatic: review and publish the validated deployment in the
+[Central Publisher Portal](https://central.sonatype.com/publishing/deployments).
 
 Examples
 --------

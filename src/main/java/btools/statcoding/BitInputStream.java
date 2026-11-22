@@ -618,7 +618,7 @@ public class BitInputStream extends InputStream implements DataInput {
 
     /**
      * Decode some bits according to the given lengthArray (which is expected to be
-     * 2^n in size, with n <= 32) <br>
+     * 2^n in size, with n less or equal 32) <br>
      * This is very special logic for speeding up huffman decoding based on a lookup
      * table. <br>
      * But could be used for speeding up other var-length codes as well.
